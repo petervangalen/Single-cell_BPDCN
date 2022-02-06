@@ -7,21 +7,6 @@ message("cutf()")
 cutf <- function(x, f=1, d="/") sapply(strsplit(x, d), function(i) paste(i[f], collapse=d))
 
 
-message("scaleMinMax()")
-scaleMinMax <- function(x, min=0, max=1, z=NULL, keepwithin=TRUE) {
-  if(!is.null(z)) {   # use z-score normalization instead
-    min <- mean(x) - z*sd(x)
-    max <- mean(x) + z*sd(x)
-  }
-  x <- (x-min) / (max-min)
-  if(keepwithin) {
-    x[x < 0] <- 0
-    x[x > 1] <- 1
-  }
-  x
-}
-
-
 message("scoreSignature()")
 scoreSignature <- function(CM, signatures, n = 100, CM.mean = NULL, verbose = F) {
   if(verbose) {
@@ -43,6 +28,21 @@ scoreSignature <- function(CM, signatures, n = 100, CM.mean = NULL, verbose = F)
   })))
   if(verbose) message(" done")
   return(s.score)
+}
+
+
+message("scaleMinMax()")
+scaleMinMax <- function(x, min=0, max=1, z=NULL, keepwithin=TRUE) {
+  if(!is.null(z)) {   # use z-score normalization instead
+    min <- mean(x) - z*sd(x)
+    max <- mean(x) + z*sd(x)
+  }
+  x <- (x-min) / (max-min)
+  if(keepwithin) {
+    x[x < 0] <- 0
+    x[x > 1] <- 1
+  }
+  x
 }
 
 

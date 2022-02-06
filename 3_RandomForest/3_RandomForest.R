@@ -92,6 +92,8 @@ for (x in 1:nrow(TenX_samples.tib)) {
 }
 names(seu_10X.ls) <- TenX_samples.tib$Patient_ID
 seu.ls <- c(Pt9Dx = list(Pt9Dx.seu), seu_10X.ls)
+# Change order
+seu.ls <- seu.ls[c("Pt1Dx", "Pt1Mrd", "Pt5Dx", "Pt9Dx", "Pt10Dx", "Pt10Rel", "Pt12Dx", "Pt12Rel")]
 expr.ls <- lapply(seu.ls, function(x) as.matrix(GetAssayData(x), slot = "data"))
 
 # Merge all gene expression data & check if it all makes sense.
@@ -125,9 +127,7 @@ heatmap.2(NormConf.mat, Rowv = F, Colv = F, dendrogram = "none", scale = "none",
 dev.off()
 
 
-#==================================
-# Five-fold cross-validation
-#==================================
+# Five-fold cross-validation ----------------------------------------------------------------------
 
 # Split dataset in five parts
 cv <- split(colnames(bm.expr), rep(1:5, 1E6)[1:ncol(bm.expr)])
@@ -170,9 +170,7 @@ heatmap.2(NormConf.cv.mat, Rowv = F, Colv = F, dendrogram = "none", scale = "non
 dev.off()
 
 
-#==================================
-# Classify cells from patients
-#==================================
+# Classify cells from patients --------------------------------------------------------------------
 
 # Predict cell types in each of the BPDCN samples (ties are broken at random)
 predictions.mat.ls <- lapply(c(BM = list(bm.expr), expr.ls), function(x) predict(rf, t(x[selected.genes,]), type = "prob"))
@@ -193,19 +191,17 @@ PlotFreq.mat <- cbind(BMfreq.mat, PredictFreq.mat[,-1])[-match("Doublets", rowna
 # Normalize to 100
 PlotFreqNorm.mat <- sweep(PlotFreq.mat, 2, colSums(PlotFreq.mat), "/")*100
 
-pdf(paste0(dir.ch, "/3_CellTypeFrequencies.pdf"), width = 8, height = 6)
+pdf("3_CellTypeFrequencies.pdf", width = 8, height = 6)
 par(mar = c(8,4,8,12), xpd = T)
 
-barplot(PlotFreqNorm.mat[nrow(PlotFreqNorm.mat):1,], col = rev(popcol.df[rownames(PlotFreqNorm.mat),"hex"]), xaxt = "n", ylab = "Population frequency (%)", border = NA)
-
+barplot(PlotFreqNorm.mat[nrow(PlotFreqNorm.mat):1,], col = rev(cell_colors[-17]), xaxt = "n", ylab = "Population frequency (%)", border = NA)
 axis(side = 1, at = seq(1,ncol(PlotFreqNorm.mat))*1.2-0.5, labels = colnames(PlotFreqNorm.mat), las = 2)
-legend(x = ncol(PlotFreqNorm.mat)*1.2+0.5, y = 100, legend = rownames(PlotFreqNorm.mat), fill = popcol.df[rownames(PlotFreqNorm.mat),"hex"], bty = "n", border = NA)
+legend(x = ncol(PlotFreqNorm.mat)*1.2+0.5, y = 100, legend = rownames(PlotFreqNorm.mat), fill = cell_colors[-17], bty = "n", border = NA)
+
 dev.off()
 
 
-#==================================
-# Project cell types & save
-#==================================
+# Project cell types & save -----------------------------------------------------------------------
 
 # Coordinates of normal cells (change UMAP_1 and UMAP_2 to facilitate workflow)
 bm.umap <- data.frame(bm@reductions$umap@cell.embeddings)
@@ -226,9 +222,9 @@ bpdcn.project.umap <- data.frame(row.names = colnames(cor.mat),
                                  project.umap.x = bm.umap[cor.id, "UMAP_1"],
                                  project.umap.y = bm.umap[cor.id, "UMAP_2"],
                                  CellType = CellTypes.ls[[Patient_ID]],
-                                 CellTypeCol = popcol.df[as.character(CellTypes.ls[[Patient_ID]]),"hex"])
+                                 CellTypeCol = cell_colors[as.character(CellTypes.ls[[Patient_ID]])])
 
-pdf(paste0(dir.ch, Patient_ID, "_cor.predict.pdf"), width = 6, height = 6)
+pdf(paste0(Patient_ID, "_cor.predict.pdf"), width = 6, height = 6)
 par(mar=c(4, 4, 4, 4))
 
 plotTSNE(bm.umap, cex = 0.3, col = "#DDDDDD", main = paste(Patient_ID, "on normal BM (grey)"))
@@ -245,7 +241,7 @@ for (n in c(2, 5, 10, 20)) {
                                    project.umap.x = apply(cor.n, 1, function(x) mean(bm.umap[x,"UMAP_1"])),
                                    project.umap.y = apply(cor.n, 1, function(x) mean(bm.umap[x,"UMAP_2"])),
                                    CellType = CellTypes.ls[[Patient_ID]],
-                                   CellTypeCol = popcol.df[as.character(CellTypes.ls[[Patient_ID]]),"hex"])
+                                   CellTypeCol = cell_colors[as.character(CellTypes.ls[[Patient_ID]])])
         
         points(bpdcn.project.umap.n[,1:2], pch = 16, cex = 0.3, col = bpdcn.project.umap$CellTypeCol)
 }
@@ -271,25 +267,23 @@ s$project.umap.x <- bpdcn.project.umap$project.umap.x
 s$project.umap.y <- bpdcn.project.umap$project.umap.y
 s@commands <- list()
 s <- subset(s, subset = CellType != "Doublets")
-saveRDS(s, file = paste0(dir.ch, Patient_ID, "_Seurat_Predict.rds"))
+saveRDS(s, file = paste0(Patient_ID, "_Seurat_Predict.rds"))
 
 }
 
 
-#==================================
-# Save normal BM object
-#==================================
+# Save normal BM object ---------------------------------------------------------------------------
 
 # Add prediction scores to bm & save
-for (x in colnames(predictions.mat.ls[["BM"]])) {
-    bm <- AddMetaData(bm, predictions.mat.ls[["BM"]][,x], col.name = paste0("Predict.", x))
-}
+#for (x in colnames(predictions.mat.ls[["BM"]])) {
+#    bm <- AddMetaData(bm, predictions.mat.ls[["BM"]][,x], col.name = paste0("Predict.", x))
+#}
 
 # Some additional wrangling
-bm <- subset(bm, subset = CellType != "Doublets")
-bm <- DietSeurat(bm)
+#bm <- subset(bm, subset = CellType != "Doublets")
+#bm <- DietSeurat(bm)
 
-saveRDS(bm, file = paste0(dir.ch, "BM_Seurat_Predict.rds"))
+#saveRDS(bm, file = "BM_Seurat_Predict.rds")
 
 
 
