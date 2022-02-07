@@ -191,6 +191,10 @@ PlotFreq.mat <- cbind(BMfreq.mat, PredictFreq.mat[,-1])[-match("Doublets", rowna
 # Normalize to 100
 PlotFreqNorm.mat <- sweep(PlotFreq.mat, 2, colSums(PlotFreq.mat), "/")*100
 
+# Test if there are significant differences in cell type frequencies between BM vs. Dx
+SubsetFreqNorm.mat <- PlotFreqNorm.mat[,grepl("BM|Dx", colnames(PlotFreqNorm.mat))]
+apply(SubsetFreqNorm.mat, 1, function(z) t.test(x = z[1:3], y = z[c(4:8)])$p.value)
+
 pdf("3_CellTypeFrequencies.pdf", width = 8, height = 6)
 par(mar = c(8,4,8,12), xpd = T)
 
@@ -256,9 +260,9 @@ stopifnot(all(rownames(bpdcn.project.umap) == colnames(s)))
 stopifnot(all(rownames(predictions.mat.ls[[Patient_ID]]) == colnames(s)))
 
 # Add prediction scores for each cell type
-for (x in colnames(predictions.mat.ls[[Patient_ID]])) {
-    s <- AddMetaData(s, predictions.mat.ls[[Patient_ID]][,x], col.name = paste0("Predict.", x))
-}
+#for (x in colnames(predictions.mat.ls[[Patient_ID]])) {
+#    s <- AddMetaData(s, predictions.mat.ls[[Patient_ID]][,x], col.name = paste0("Predict.", x))
+#}
 
 # Add other metadata, exclude doublets, save
 s$CellType <- bpdcn.project.umap$CellType
@@ -266,6 +270,8 @@ s@active.ident <- s$CellType
 s$project.umap.x <- bpdcn.project.umap$project.umap.x
 s$project.umap.y <- bpdcn.project.umap$project.umap.y
 s@commands <- list()
+s$my.tSNE.x <- NULL
+s$my.tSNE.y <- NULL
 s <- subset(s, subset = CellType != "Doublets")
 saveRDS(s, file = paste0(Patient_ID, "_Seurat_Predict.rds"))
 
