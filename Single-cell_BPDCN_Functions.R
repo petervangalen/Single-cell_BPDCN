@@ -3,6 +3,12 @@
 # Based on "~/DropboxPartners/Pipelines/scRNAseq_SeqWell/190601_FunctionsGeneral.R"
 
 
+# Sync RStudio project to Github repository (added 220423)
+#install.packages("gitcreds")
+#library(gitcreds)
+#gitcreds_set()
+
+
 message("cutf()")
 cutf <- function(x, f=1, d="/") sapply(strsplit(x, d), function(i) paste(i[f], collapse=d))
 
