@@ -5,11 +5,7 @@ library(tidyverse)
 library(Seurat)
 library(readxl)
 library(ComplexHeatmap)
-#library(gdata)
-#library(harmony)
-#library(ggplot2)
-#library(RColorBrewer)
-#library(data.table)
+library(data.table)
 
 setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/Github/7_Heatmaps")
 
@@ -28,9 +24,10 @@ markerGenes.df <- read.table("../2_Annotate/markerGenes.txt", header = T)
 bm <- readRDS("../2_Annotate/BM_Seurat_CellTypes.rds")
 seurat_files <- list.files("../3_RandomForest", pattern = "*.rds", full.names = T)
 bpdcn_seu.ls <- lapply(seurat_files, function(x) readRDS(x))
-merge.seu <- merge(x = bm, y = bpdcn_seu.ls)
-merge.seu$CellType <- factor(merge.seu$CellType, levels = levels(bm$CellType))
-merge.seu@active.ident <- merge.seu$CellType
+merge_seu <- merge(x = bm, y = bpdcn_seu.ls)
+merge_seu$CellType <- factor(merge_seu$CellType, levels = levels(bm$CellType))
+merge_seu@active.ident <- merge_seu$CellType
+merge_seu$orig.ident <- factor(merge_seu$orig.ident, levels = c("BM", "Pt1Dx", "Pt1Mrd", "Pt5Dx", "Pt9Dx", "Pt10Dx", "Pt10Rel", "Pt12Dx", "Pt12Rel"))
 
 # Functions & colors
 #source("~/DropboxPartners/Pipelines/scRNAseq_SeqWell/190601_FunctionsGeneral.R")
@@ -51,33 +48,32 @@ merge.seu@active.ident <- merge.seu$CellType
 
 # Plot average expression of top marker genes. Genes that are highly expressed overall may be good contamination markers.
 FiveMarkerGenes.ch <- unique( do.call(c, markerGenes.df[1:5,]) )
-FiveMarkerGenes.df <- as.matrix(GetAssayData(merge.seu, slot = "data"))[FiveMarkerGenes.ch,]
+FiveMarkerGenes.df <- as.matrix(GetAssayData(merge_seu, slot = "data"))[FiveMarkerGenes.ch,]
+# The highest expressed genes include HBB
 barplot(sort(rowMeans(FiveMarkerGenes.df), decreasing = T), las = 2, ylab = "Mean expression")
 abline(h = 1, col = "red")
 HighMarkerGenes.num <- rowMeans(FiveMarkerGenes.df[rowMeans(FiveMarkerGenes.df) > 1,])
-
-# Violin plot separated by cell type shows that HBB is present in some non-erythroid cells
-VlnPlot(merge.s, features = names(HighMarkerGenes.num), group.by = "CellType", pt.size = 0.2)
+# Violin plots of highly expressed marker genes shows that HBB is present in some non-erythroid cells 
+#VlnPlot(merge_seu, features = names(HighMarkerGenes.num), group.by = "CellType", pt.size = 0.2)
 
 # A proportion of non-erythroid cells have high HBB expression, indicating they are doublets that escaped detection by classification, or cells that have high levels of RNA contamination. For heatmaps in Figure 2, we excluded 11.6% of HSC/Prog/Myeloid/Dendritic cells on the basis of HBB expression.
-VlnPlot(merge.seu, features = "HBB", group.by = "CellType", pt.size = 0.2) + geom_hline(yintercept = 4.5)
-HPMD.s <- subset(merge.seu, subset = CellType %in% c("HSC", "Prog", "ProMono", "Mono", "ncMono", "cDC", "pDC"))
-badcells.s <- subset(HPMD.s, subset = HBB > 4.5)
-ncol(badcells.s) / ncol(HPMD.s)
+VlnPlot(merge_seu, features = "HBB", group.by = "CellType", pt.size = 0.2) + geom_hline(yintercept = 4.5)
+# Including a lot of promonocytes in Patient 9 (the Seq-Well sample)
+VlnPlot(subset(merge_seu, CellType == "ProMono"), features = "HBB", group.by = "orig.ident", pt.size = 0.2) + geom_hline(yintercept = 4.5)
+
+# Remove non-erythroid cells with HBB expression
+HPMD_seu <- subset(merge_seu, subset = CellType %in% setdiff(levels(merge_seu$CellType), c("EarlyE", "LateE")))
+bad_cells <- subset(HPMD_seu, subset = HBB > 4.5)
+ncol(bad_cells) / ncol(HPMD_seu)
+# -------------------------------------------------------------------
+# ^^^ IS IT REALLY NECESSARY TO EXCLUDE HBB+ NON-ERYTHROID CELLS?
+# -------------------------------------------------------------------
 
 # Select cells for further analysis.
-filter.s <- subset(merge.seu, cells = setdiff(colnames(merge.s), colnames(badcells.s)))
+filter_seu <- subset(merge_seu, cells = setdiff(colnames(merge_seu), colnames(bad_cells)))
 celltypes.ch <- c("pDC", "cDC", "ncMono", "Mono", "ProMono", "Prog", "HSC", "EarlyE", "LateE")
-filter.s <- subset(filter.s, idents = celltypes.ch)
-filter.s$CellType <- factor(filter.s$CellType, levels = celltypes.ch)
-
-
-VlnPlot(subset(merge.seu, CellType == "ProMono"), features = "HBB", group.by = "orig.ident", pt.size = 0.2) + geom_hline(yintercept = 4.5)
-
-# -------------------------------
-# SHOULD I EXCLUDE ALL HBB+ NON-ERYTHROID CELLS? THIS IS WHERE I LEFT OFF 220422
-# -------------------------------
-
+filter_seu <- subset(filter_seu, idents = celltypes.ch)
+filter_seu$CellType <- factor(filter_seu$CellType, levels = celltypes.ch)
 
 
 #================================
@@ -85,12 +81,12 @@ VlnPlot(subset(merge.seu, CellType == "ProMono"), features = "HBB", group.by = "
 #================================
 
 # Make a list of cell IDs separated by cell type, then randomize order
-celltype.ls <- split(colnames(filter.s), f = filter.s$CellType)
+celltype.ls <- split(colnames(filter_seu), f = filter_seu$CellType)
 celltype.ls <- lapply(celltype.ls, function(s) sample(s))
 
 # Add randomized order of cells as meta.data to Seurat object
-SortedOrder.num <- match(unlist(celltype.ls, use.names = F), colnames(filter.s))
-filter.s <- AddMetaData(filter.s, metadata = SortedOrder.num, col.name = "SortedOrder")
+SortedOrder.num <- match(unlist(celltype.ls, use.names = F), colnames(filter_seu))
+filter_seu <- AddMetaData(filter_seu, metadata = SortedOrder.num, col.name = "SortedOrder")
 
 
 #=============================
@@ -98,15 +94,16 @@ filter.s <- AddMetaData(filter.s, metadata = SortedOrder.num, col.name = "Sorted
 #=============================
 
 # Define new marker genes based on filtered BM populations, similar to 200414_Annotate.R (unless you already did before)
-if (file.exists(paste0(dir.ch, "CurrentMarkers.txt"))) {
-    CurrentMarkers.df <- read.table(paste0(dir.ch, "CurrentMarkers.txt"), header = T)
+if (file.exists("FilteredMarkerGenes.txt")) {
+    CurrentMarkers.df <- read.table("FilteredMarkerGenes.txt", header = T)
 } else {
-CurrentMarkers <- FindAllMarkers(subset(filter.s, subset = orig.ident ==  "BM"), slot = "data",
+CurrentMarkers <- FindAllMarkers(subset(filter_seu, subset = orig.ident ==  "BM"), slot = "data",
                                  logfc.threshold = 0.25, min.pct = 0.1)
 CurrentMarkers.dt.ls <- lapply(split(CurrentMarkers, f = CurrentMarkers$cluster), function(x) data.table(x))
-CurrentMarkers.dt.ls <- lapply(CurrentMarkers.dt.ls, function(x) setorder(x, -avg_logFC))
-CurrentMarkers.df <- data.frame( do.call(cbind, lapply(CurrentMarkers.dt.ls, function(x) x$gene[1:50])) )
-write.table(CurrentMarkers.df[,celltypes.ch], file = paste0(dir.ch, "CurrentMarkers.txt"), sep = "\t", col.names = T, row.names = F, quote = F)
+CurrentMarkers.dt.ls <- lapply(CurrentMarkers.dt.ls, function(x) setorder(x, -avg_log2FC)) # sort by fold change
+stopifnot(min(unlist(lapply(CurrentMarkers.dt.ls, function(x) x[1:50,avg_log2FC]))) > 0) # check that top 50 genes have +ve fold change
+CurrentMarkers.df <- do.call(cbind, lapply(CurrentMarkers.dt.ls, function(x) x$gene[1:50]))
+write.table(CurrentMarkers.df[,celltypes.ch], file = "FilteredMarkerGenes.txt", sep = "\t", col.names = T, row.names = F, quote = F)
 }
 
 CurrentMarkers.ch <- unique( unlist(CurrentMarkers.df[1:10,celltypes.ch], use.names = F) )
@@ -117,62 +114,57 @@ CurrentMarkers.ch <- unique( unlist(CurrentMarkers.df[1:10,celltypes.ch], use.na
 #================================
 
 # Generate data frame for heatmap annotations
-Mut.ch <- c("TET2.E1437fs*", "TET2.Q1547*", "CUX1.L911fs*", "TET2.S792*", "TET2.Q1034*", "TET2.R1216*", "TET2.H1380Y", "ASXL1.G642fs")
-MetaData.df <- filter.s@meta.data[filter.s$SortedOrder,c("orig.ident", "CellType", paste0("Predict.", celltypes.ch), Mut.ch),]
-MetaData.df[is.na(MetaData.df)] <- "no call"
+#Mut.ch <- c("TET2.E1437fs*", "TET2.Q1547*", "CUX1.L911fs*", "TET2.S792*", "TET2.Q1034*", "TET2.R1216*", "TET2.H1380Y", "ASXL1.G642fs")
+#metadata_df <- filter_seu@meta.data[filter_seu$SortedOrder,c("orig.ident", "CellType", paste0("Predict.", celltypes.ch), Mut.ch),]
+#metadata_df[is.na(metadata_df)] <- "no call"
+metadata_df <- filter_seu@meta.data[filter_seu$SortedOrder,c("orig.ident", "CellType")]
 
 # Create matrix to plot gene expression, normalize
-plot.mat <- as.matrix(GetAssayData(filter.s, slot = "data"))[CurrentMarkers.ch,]
-plot.mat <- plot.mat - rowMeans(plot.mat)
+plot_mat <- as.matrix(GetAssayData(filter_seu, slot = "data"))[CurrentMarkers.ch,]
+plot_mat <- plot_mat - rowMeans(plot_mat)
 
 ### Plot heatmap for each sample
-for (Donor in c("BM", "BPDCN628", "BPDCN712", "BPDCN712R")) {
+for (Donor in levels(filter_seu$orig.ident)) {
 #Donor <- "BM"
-#Donor <- "BPDCN628"
-#Donor <- "BPDCN712"
-#Donor <- "BPDCN712R"
 
 # Subset metadata and gene expression for current sample
-MetaData.s.df <- MetaData.df[MetaData.df$orig.ident == Donor,]
-plot.s.mat <- plot.mat[,rownames(MetaData.s.df)]
+metadata_subset_df <- metadata_df[metadata_df$orig.ident == Donor,]
+
+plot_subset_mat <- plot_mat[,rownames(metadata_subset_df)]
 z.lim <- c(-2, 4)
-plot.s.mat[plot.s.mat < z.lim[1]] <- z.lim[1]
-plot.s.mat[plot.s.mat > z.lim[2]] <- z.lim[2]
+plot_subset_mat[plot_subset_mat < z.lim[1]] <- z.lim[1]
+plot_subset_mat[plot_subset_mat > z.lim[2]] <- z.lim[2]
 
 # Define annotation objects. For plotting continuous matrix values (e.g. Predict), see archived script "200530_Heatmaps.R".
-top_anno.ha <- HeatmapAnnotation(CellType = MetaData.s.df$CellType,
-                                 #Predict = as.matrix(MetaData.s.df[,grepl("Predict", colnames(MetaData.s.df))]),
-                                 col = list(CellType = setNames(popcol.df[celltypes.ch,"hex"], celltypes.ch)),
+top_anno.ha <- HeatmapAnnotation(CellType = metadata_subset_df$CellType,
+                                 col = list(CellType = cell_colors),
                                  annotation_name_gp = gpar(fontsize = 10),
                                  border = T)
 
-bottom_anno.ha <- HeatmapAnnotation(Mut = as.matrix(MetaData.s.df[,Mut.ch]),
-                                    col = list(Mut = c("no call" = "#FFFFFF", "wildtype" = "#1AFF1A", "mutant" = "#4B0092")),
-                                    annotation_name_gp = gpar(fontsize = 10),
-                                    border = T)
+#bottom_anno.ha <- HeatmapAnnotation(Mut = as.matrix(metadata_subset_df[,Mut.ch]),
+#                                    col = list(Mut = c("no call" = "#FFFFFF", "wildtype" = "#1AFF1A", "mutant" = "#4B0092")),
+#                                    annotation_name_gp = gpar(fontsize = 10),
+#                                    border = T)
 
 # Create Heatmap object
-hm <- Heatmap(as.matrix(plot.s.mat),
-              col = heatcol[3:11],
+hm <- Heatmap(as.matrix(plot_subset_mat),
+              col = colItay(c(1:11))[3:11],
               cluster_rows = F,
               cluster_columns = F,
               row_names_gp = gpar(fontsize = 2),
               show_column_names = F,
               top_annotation = top_anno.ha,
-              bottom_annotation = bottom_anno.ha,
+#              bottom_annotation = bottom_anno.ha,
               name = "Expr",
               column_title = Donor,
               column_title_gp = gpar(fontsize = 10),
               border = T,
-              use_raster = T)
+              use_raster = T,
+              raster_quality = 10)
 
-pdf(paste0(dir.ch, Donor, "_Heatmap.pdf"), width = 8, height = 5)
+pdf(paste0(Donor, "_Heatmap.pdf"), width = 8, height = 5)
 print(hm)
 dev.off()
 
 }
-
-
-
-
 
