@@ -7,6 +7,7 @@
 #install.packages("gitcreds")
 #library(gitcreds)
 #gitcreds_set()
+# Also see https://stackoverflow.com/questions/15843937/git-push-hangs-after-total-line for `git config --global http.postBuffer 157286400` and https://gist.github.com/nepsilon/156387acf9e1e72d48fa35c4fabef0b4 for `git rebase -i HEAD~X` and `git push --force`
 
 
 message("cutf()")
