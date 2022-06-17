@@ -107,7 +107,7 @@ all(colnames(bm.expr) == names(bm@active.ident))
 
 # Plant classification trees
 set.seed(123)
-rf <- randomForest(x = t(bm.expr[selected.genes,]),    # matrix of predictors
+rf <- randomForest(x = t(bm.expr[selected.genes,]),  # matrix of predictors
                    y = bm@active.ident,              # response vector
                    sampsize = rep(50, length(levels(bm@active.ident))),
                    ntree = 1000,

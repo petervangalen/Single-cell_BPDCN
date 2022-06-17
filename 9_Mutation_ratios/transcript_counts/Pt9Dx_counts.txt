@@ -1,0 +1,5 @@
+"HSPC" "Ery" "Myeloid" "NK" "B.cells" "T.cells"
+"TET2.E1437fs*" 15 22 416 11 7 8
+"TET2.Q1547*" 10 10 143 9 4 7
+"CUX1.L911fs*" 0 5 61 5 1 3
+"EZH2.A505T" 15 71 177 5 3 6
