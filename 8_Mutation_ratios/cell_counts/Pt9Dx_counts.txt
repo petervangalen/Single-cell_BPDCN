@@ -1,0 +1,4 @@
+HSPC	Ery	Myeloid	NK	B.cells	T.cells
+TET2.E1437fs*	18	20	391	10	7	6
+TET2.Q1547*	13	11	137	9	3	4
+CUX1.L911fs*	1	4	61	6	1	2

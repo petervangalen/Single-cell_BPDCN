@@ -14,10 +14,10 @@ rm(list=ls())
 # Functions & colors
 source("../Single-cell_BPDCN_Functions.R")
 popcol.tib <- read_excel("../Single-cell_BPDCN_colors.xlsx")
-cell_colors <- popcol.tib$hex[1:17]
-names(cell_colors) <- popcol.tib$pop[1:17]
+cell_colors <- popcol.tib$hex[1:23]
+names(cell_colors) <- popcol.tib$pop[1:23]
 
-# Marker genes for the 17 cell types
+# Marker genes for the 23 cell types
 markerGenes.df <- read.table("../2_Annotate/markerGenes.txt", header = T)
 selected.genes <- unique( unlist(markerGenes.df, use.names = F) )
 
@@ -36,69 +36,96 @@ DimPlot(bm, reduction = "umap", label = TRUE, pt.size = 0.5, cols = cell_colors)
           axis.title.x=element_blank(), axis.title.y=element_blank(), panel.border=element_rect(colour = "black", fill=NA, size=1),
           plot.title = element_text(hjust = 0.5)) + ggtitle("Named clusters")
 
-# Load and process BPDCN628 SW data similar to the healthy bone marrow controls (see 200413_Seurat_Harmony.R)
-load("../../ExprStar/191111.190314.BPDCN628.both/191111.190314.BPDCN628.both.filter.RData", verbose = T)
-# Check if you can add columns from CM.stats as features in Seurat
-all(CM.stats$cell == colnames(CM.df))
+# Load and process BPDCN628 SW data similar to the healthy bone marrow controls (see 1_Seurat_Harmony.R)
+load("../../ExprStar/191111.190314.BPDCN180628-1.star/191111.190314.BPDCN180628-1.filter.RData", verbose = T)
+CM1.df <- CM.df
+load("../../ExprStar/191111.190314.BPDCN180628-2.star/191111.190314.BPDCN180628-2.filter.RData", verbose = T)
+CM.df <- cbind(CM1.df, CM.df)
 # Subset for genes in bm object / exclude some odd-looking genes: setdiff(rownames(CM.df), rownames(bm))
 CM.df <- CM.df[rownames(bm),]
 # Harmonize cell ids
 colnames(CM.df) <- paste0(cutf(colnames(CM.df), d = "_", f = 2), "-", gsub("BPDCN628-", "Pt9Dx.", cutf(colnames(CM.df), d = "_", f = 1)))
 # Create Seurat object and add metadata
 Pt9Dx.seu <- CreateSeuratObject(counts = CM.df, project = "Pt9Dx")
-Pt9Dx.seu <- NormalizeData(Pt9Dx.seu) # (log, transcript per 10K)
+Pt9Dx.seu <- NormalizeData(Pt9Dx.seu) # log, transcript per 10K
 Pt9Dx.seu$replicate <- cutf(colnames(Pt9Dx.seu), d = "-", f = 2)
 Pt9Dx.seu$tech <- "SW"
-Pt9Dx.seu$my.tSNE.x <- CM.stats$tSNEx
-Pt9Dx.seu$my.tSNE.y <- CM.stats$tSNEy
-# Create count matrix that is easier to work with for randomForest
-Pt9Dx.cm <- as.matrix( GetAssayData(Pt9Dx.seu, slot = "data") )
 
 # Function to load and process 10X data in the same way
 Process_10X <- function(RData, patient_id) {
     load(RData, verbose = T)
     stopifnot(all(colnames(CM.dgm) == stats.dt$cell))
     CM.df <- as.matrix( CM.dgm[rownames(bm),] )
-    colnames(CM.df) <- colnames(CM.df) %>% str_replace("-1", str_c("-", patient_id, ".1")) %>%
-        str_replace("-2", str_c("-", patient_id, ".2")) %>% str_replace("-3", str_c("-", patient_id, ".3")) %>%
-        str_replace("-4", str_c("-", patient_id, ".4"))
+    colnames(CM.df) <- gsub(1, gsub("-", ".", patient_id), colnames(CM.dgm))
     seu <- CreateSeuratObject(counts = CM.df, project = patient_id)
-    seu <- NormalizeData(seu) # (log, transcript per 10K)
+    seu <- NormalizeData(seu) # log, transcript per 10K
     seu$replicate <- cutf(colnames(seu), d = "-", f = 2)
     seu$tech <- "TenX"
-    seu$my.tSNE.x <- stats.dt$tSNEx
-    seu$my.tSNE.y <- stats.dt$tSNEy
     return(seu)
 }
 
 # Create tibble with information on BPDCN samples that were analyzed with 10x
 TenX_samples.tib <- tribble(~Patient_ID, ~RData, ~Note,
-                            "Pt1Dx", "../../CellRanger/PT1-DX_agg/PT1-DX_agg.RData", "Added for revision",
-                            "Pt1Mrd", "../../CellRanger/PT1-MRD_agg/PT1-MRD_agg.RData", "Added for revision",
-                            "Pt5Dx", "../../CellRanger/PT5-DX_agg/PT5-DX_agg.RData", "Added for revision",
-                            "Pt10Dx", "../../CellRanger/BPDCN712_agg/BPDCN712_agg.RData", "Included in submission",
-                            "Pt10Rel", "../../CellRanger/BPDCN712R_agg/BPDCN712R_agg.RData", "Included in submission",
-                            "Pt12Dx", "../../CellRanger/PT12-DX_agg/PT12-DX_agg.RData", "Added for revision",
-                            "Pt12Rel", "../../CellRanger/PT12-REL_agg/PT12-REL_agg.RData", "Added for revision") #,
-                            # "BPDCN181128", "../../CellRanger/BPDCN181128_agg/BPDCN181128_agg.RData", "Erica's project",
-                            # "BPDCN180329", "../../CellRanger/BPDCN180329_agg/BPDCN180329_agg.RData", "Erica's project",
-                            # "BPDCN190711", "../../CellRanger/BPDCN190711_agg/BPDCN190711_agg.RData", "Erica's project")
+                            "Pt1Dx-2", "../../CellRanger/Pt1Dx-2/Pt1Dx-2.RData", "",
+                            "Pt1Dx-3", "../../CellRanger/Pt1Dx-3/Pt1Dx-3.RData", "",
+                            "Pt1Mrd-1", "../../CellRanger/Pt1Mrd-1/Pt1Mrd-1.RData", "",
+                            "Pt1Mrd-2", "../../CellRanger/Pt1Mrd-2/Pt1Mrd-2.RData", "",
+                            "Pt1Mrd-3", "../../CellRanger/Pt1Mrd-3/Pt1Mrd-3.RData", "",
+                            "Pt5Dx-1", "../../CellRanger/Pt5Dx-1/Pt5Dx-1.RData", "",
+                            "Pt5Dx-3", "../../CellRanger/Pt5Dx-3/Pt5Dx-3.RData", "",
+                            "Pt10Dx-1", "../../CellRanger/Pt10Dx-1/Pt10Dx-1.RData", "Included in submission",
+                            "Pt10Dx-2", "../../CellRanger/Pt10Dx-2/Pt10Dx-2.RData", "Included in submission",
+                            "Pt10Dx-3", "../../CellRanger/Pt10Dx-3/Pt10Dx-3.RData", "Included in submission",
+                            "Pt10Dx-4", "../../CellRanger/Pt10Dx-4/Pt10Dx-4.RData", "Included in submission",
+                            "Pt10Rel-1", "../../CellRanger/Pt10Rel-1/Pt10Rel-1.RData", "Included in submission",
+                            "Pt10Rel-2", "../../CellRanger/Pt10Rel-2/Pt10Rel-2.RData", "Included in submission",
+                            "Pt12Dx-1", "../../CellRanger/Pt12Dx-1/Pt12Dx-1.RData", "",
+                            "Pt12Dx-2", "../../CellRanger/Pt12Dx-2/Pt12Dx-2.RData", "",
+                            "Pt12Rel-1", "../../CellRanger/Pt12Rel-1/Pt12Rel-1.RData", "",
+                            "Pt12Rel-2", "../../CellRanger/Pt12Rel-2/Pt12Rel-2.RData", "",
+                            "Pt14Dx-1", "../../CellRanger/Pt14Dx-1/Pt14Dx-1.RData", "",
+                            "Pt14Dx-2", "../../CellRanger/Pt14Dx-2/Pt14Dx-2.RData", "",
+                            "Pt14Dx-3", "../../CellRanger/Pt14Dx-3/Pt14Dx-3.RData", "",
+                            "Pt15Dx-5", "../../CellRanger/Pt15Dx-5/Pt15Dx-5.RData", "",
+                            "Pt15Dx-6", "../../CellRanger/Pt15Dx-6/Pt15Dx-6.RData", "",
+                            "Pt15Dx-7", "../../CellRanger/Pt15Dx-7/Pt15Dx-7.RData", "",
+                            "Pt16Dx-1", "../../CellRanger/Pt16Dx-1/Pt16Dx-1.RData", "",
+                            "Pt16Dx-2", "../../CellRanger/Pt16Dx-2/Pt16Dx-2.RData", "",
+                            "Pt16Dx-3", "../../CellRanger/Pt16Dx-3/Pt16Dx-3.RData", "")
 
 # Create list of processed Seurat objects
-seu_10X.ls <- vector(mode = "list", length = nrow(TenX_samples.tib))
+seu_10x.ls <- vector(mode = "list", length = nrow(TenX_samples.tib))
 for (x in 1:nrow(TenX_samples.tib)) {
-    seu_10X.ls[[x]] <- Process_10X(RData = TenX_samples.tib[[x,"RData"]],
+    seu_10x.ls[[x]] <- Process_10X(RData = TenX_samples.tib[[x,"RData"]],
                                    patient_id = TenX_samples.tib[[x,"Patient_ID"]])
 }
-names(seu_10X.ls) <- TenX_samples.tib$Patient_ID
-seu.ls <- c(Pt9Dx = list(Pt9Dx.seu), seu_10X.ls)
-# Change order
-seu.ls <- seu.ls[c("Pt1Dx", "Pt1Mrd", "Pt5Dx", "Pt9Dx", "Pt10Dx", "Pt10Rel", "Pt12Dx", "Pt12Rel")]
+names(seu_10x.ls) <- TenX_samples.tib$Patient_ID
+seu.ls <- list(Pt1Dx = merge(seu_10x.ls$`Pt1Dx-2`, list(seu_10x.ls$`Pt1Dx-3`)),
+               Pt1Mrd = merge(seu_10x.ls$`Pt1Mrd-1`, list(seu_10x.ls$`Pt1Mrd-2`, seu_10x.ls$`Pt1Mrd-3`)),
+               Pt5Dx = merge(seu_10x.ls$`Pt5Dx-1`, list(seu_10x.ls$`Pt5Dx-3`)),
+               Pt9Dx = Pt9Dx.seu,
+               Pt10Dx = merge(seu_10x.ls$`Pt10Dx-1`, list(seu_10x.ls$`Pt10Dx-2`, seu_10x.ls$`Pt10Dx-3`, seu_10x.ls$`Pt10Dx-4`)),
+               Pt10Rel = merge(seu_10x.ls$`Pt10Rel-1`, list(seu_10x.ls$`Pt10Rel-2`)),
+               Pt12Dx = merge(seu_10x.ls$`Pt12Dx-1`, list(seu_10x.ls$`Pt12Dx-2`)),
+               Pt12Rel = merge(seu_10x.ls$`Pt12Rel-1`, list(seu_10x.ls$`Pt12Rel-2`)),
+               Pt14Dx = merge(seu_10x.ls$`Pt14Dx-1`, list(seu_10x.ls$`Pt14Dx-2`, seu_10x.ls$`Pt14Dx-3`)),
+               Pt15Dx = merge(seu_10x.ls$`Pt15Dx-5`, list(seu_10x.ls$`Pt15Dx-6`, seu_10x.ls$`Pt15Dx-7`)),
+               Pt16Dx = merge(seu_10x.ls$`Pt16Dx-1`, list(seu_10x.ls$`Pt16Dx-2`, seu_10x.ls$`Pt16Dx-3`)))
+
+# Apply the same quality metrics to BPDCN as to healthy controls (see 1_Seurat_Harmony.R)
+seu.ls <- lapply(seu.ls, subset, nCount_RNA > 2000 & nFeature_RNA > 1000)
+
+# Remove replicate from orig.ident metadata (this is still saved in the replicate column)
+for (n in names(seu.ls)) {
+  seu.ls[[n]]$orig.ident <- cutf(as.character(seu.ls[[n]]$orig.ident), d = "-")
+}
+
+# Get expression matrices
 expr.ls <- lapply(seu.ls, function(x) as.matrix(GetAssayData(x), slot = "data"))
 
 # Merge all gene expression data & check if it all makes sense.
 all.mat <- cbind(bm.expr, do.call(cbind, expr.ls))
-table(cutf(colnames(all.mat), d = "-", f = 2))
+data.frame(table(cutf(colnames(all.mat), d = "-", f = 2)))
 table(round(colSums(exp(all.mat)-1)))
 all(colnames(bm.expr) == names(bm@active.ident))
 
@@ -117,7 +144,7 @@ rf <- randomForest(x = t(bm.expr[selected.genes,]),  # matrix of predictors
 Conf.mat <- rf$confusion[, rownames(rf$confusion)]
 NormConf.mat <- Conf.mat / rowSums(Conf.mat)
 
-pdf("1_ConfusionMatrix.pdf", width = 8, height = 8)
+pdf("1_ConfusionMatrix.pdf", width = 12, height = 12)
 heatmap.2(NormConf.mat, Rowv = F, Colv = F, dendrogram = "none", scale = "none", zlim = c(0, 1),
           col = colCustom(seq(0, 1, 0.01), color = c("white", "red")), trace = "none", density.info = "none",
           colsep = c(0, ncol(NormConf.mat)), rowsep = c(0, nrow(NormConf.mat)), sepcolor = "black",sepwidth = rep(0.01, 4),
@@ -160,7 +187,7 @@ head(rf.cv.predict[[1]])
 Conf.cv.mat <- table(bm@active.ident[unlist(lapply(rf.cv.predict, names))], unlist(rf.cv.predict))
 NormConf.cv.mat <- Conf.cv.mat / rowSums(Conf.cv.mat)
 
-pdf("2_CrossValidation.pdf", width = 8, height = 8)
+pdf("2_CrossValidation.pdf", width = 12, height = 12)
 heatmap.2(NormConf.cv.mat, Rowv = F, Colv = F, dendrogram = "none", scale = "none", zlim = c(0, 1),
           col = colCustom(seq(0, 1, 0.01), color = c("white", "red")), trace = "none", density.info = "none",
           colsep = c(0, ncol(NormConf.cv.mat)), rowsep = c(0, nrow(NormConf.cv.mat)), sepcolor = "black",sepwidth = rep(0.01, 4),
@@ -173,7 +200,9 @@ dev.off()
 # Classify cells from patients --------------------------------------------------------------------
 
 # Predict cell types in each of the BPDCN samples (ties are broken at random)
-predictions.mat.ls <- lapply(c(BM = list(bm.expr), expr.ls), function(x) predict(rf, t(x[selected.genes,]), type = "prob"))
+predictions.mat.ls <- lapply(expr.ls, function(x) predict(rf, t(x[selected.genes,]), type = "prob"))
+# Perform similar analysis on bone marrow (for the next section)
+bm.predictions.mat <- predict(rf, t(bm.expr[selected.genes,]), type = "prob")
 
 # Maximum probability
 CellTypes.ls <- lapply(predictions.mat.ls, function(x) {
@@ -187,20 +216,22 @@ BMfreq.mat <- do.call(cbind, lapply(split(bm@meta.data, f = cutf(bm@meta.data$re
 PredictFreq.mat <- do.call(cbind, lapply(CellTypes.ls, table))
 # Percent doublets. For healthy donor doublets, see bm$CellType
 apply(PredictFreq.mat, 2, function(x) x["Doublets"] / sum(x) * 100)
-PlotFreq.mat <- cbind(BMfreq.mat, PredictFreq.mat[,-1])[-match("Doublets", rownames(PredictFreq.mat)),]
+PlotFreq.mat <- cbind(BMfreq.mat, PredictFreq.mat)
+PlotFreq.mat <- PlotFreq.mat[-match("Doublets", rownames(PlotFreq.mat)),]
 # Normalize to 100
 PlotFreqNorm.mat <- sweep(PlotFreq.mat, 2, colSums(PlotFreq.mat), "/")*100
 
-# Test if there are significant differences in cell type frequencies between BM vs. Dx
+# Test if there are significant differences in cell type frequencies between BM vs. Dx --> No there aren't.
 SubsetFreqNorm.mat <- PlotFreqNorm.mat[,grepl("BM|Dx", colnames(PlotFreqNorm.mat))]
 apply(SubsetFreqNorm.mat, 1, function(z) t.test(x = z[1:3], y = z[c(4:8)])$p.value)
 
-pdf("3_CellTypeFrequencies.pdf", width = 8, height = 6)
+pdf("3_CellTypeFrequencies.pdf", width = 10, height = 6)
 par(mar = c(8,4,8,12), xpd = T)
 
-barplot(PlotFreqNorm.mat[nrow(PlotFreqNorm.mat):1,], col = rev(cell_colors[-17]), xaxt = "n", ylab = "Population frequency (%)", border = NA)
+barplot(PlotFreqNorm.mat[nrow(PlotFreqNorm.mat):1,], col = rev(cell_colors[rownames(PlotFreqNorm.mat)]),
+        xaxt = "n", ylab = "Population frequency (%)", border = NA)
 axis(side = 1, at = seq(1,ncol(PlotFreqNorm.mat))*1.2-0.5, labels = colnames(PlotFreqNorm.mat), las = 2)
-legend(x = ncol(PlotFreqNorm.mat)*1.2+0.5, y = 100, legend = rownames(PlotFreqNorm.mat), fill = cell_colors[-17], bty = "n", border = NA)
+legend(x = ncol(PlotFreqNorm.mat)*1.2+0.5, y = 100, legend = rownames(PlotFreqNorm.mat), fill = cell_colors[rownames(PlotFreqNorm.mat)], bty = "n", border = NA)
 
 dev.off()
 
@@ -216,10 +247,10 @@ for ( Patient_ID in names(expr.ls) ) {
 message(Patient_ID)
 
 # Correlate BPDCN cell prediction scores to BM prediction scores
-cor.mat <- cor(t(predictions.mat.ls[["BM"]]), t(predictions.mat.ls[[Patient_ID]]))
+cor.mat <- cor(t(bm.predictions.mat), t(predictions.mat.ls[[Patient_ID]]))
 cor.mat[1:3,1:3]
 cor.max <- apply(cor.mat, 2, which.max)
-cor.id <- rownames(predictions.mat.ls[["BM"]])[cor.max]
+cor.id <- rownames(bm.predictions.mat)[cor.max]
 
 # Plot single nearest cells
 bpdcn.project.umap <- data.frame(row.names = colnames(cor.mat),
@@ -264,32 +295,23 @@ stopifnot(all(rownames(predictions.mat.ls[[Patient_ID]]) == colnames(s)))
 #    s <- AddMetaData(s, predictions.mat.ls[[Patient_ID]][,x], col.name = paste0("Predict.", x))
 #}
 
+
+
 # Add other metadata, exclude doublets, save
 s$CellType <- bpdcn.project.umap$CellType
 s@active.ident <- s$CellType
 s$project.umap.x <- bpdcn.project.umap$project.umap.x
 s$project.umap.y <- bpdcn.project.umap$project.umap.y
 s@commands <- list()
-s$my.tSNE.x <- NULL
-s$my.tSNE.y <- NULL
+
+# Specify additional doublets based on their UMAP coordinates (same as 1_Seurat_Harmony.R) and exclude them with classified doublets
+more_doublets <- filter(as_tibble(s@meta.data, rownames = "cell"), between(project.umap.x, -7, -2), between(project.umap.y, 0, 3))$cell
+s <- subset(s, cells = setdiff(colnames(s), more_doublets))
 s <- subset(s, subset = CellType != "Doublets")
+
 saveRDS(s, file = paste0(Patient_ID, "_Seurat_Predict.rds"))
 
 }
-
-
-# Save normal BM object ---------------------------------------------------------------------------
-
-# Add prediction scores to bm & save
-#for (x in colnames(predictions.mat.ls[["BM"]])) {
-#    bm <- AddMetaData(bm, predictions.mat.ls[["BM"]][,x], col.name = paste0("Predict.", x))
-#}
-
-# Some additional wrangling
-#bm <- subset(bm, subset = CellType != "Doublets")
-#bm <- DietSeurat(bm)
-
-#saveRDS(bm, file = "BM_Seurat_Predict.rds")
 
 
 

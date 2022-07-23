@@ -1,0 +1,5 @@
+HSPC	Ery	Myeloid	NK	B.cells	T.cells
+ASXL1.R693*	0	1	19	0	3	0
+TET2.S794*	1	1	103	1	5	0
+TET2.Q876*	0	0	119	0	2	0
+ZRSR2.R126*	0	0	0	0	0	0

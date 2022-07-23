@@ -1,6 +1,0 @@
-"HSPC" "Ery" "Myeloid" "NK" "B.cells" "T.cells"
-"TET2.Q960*" 0 0 4 1 0 0
-"ASXL1.L697fs*" 0 0 3 0 0 0
-"SMARCC1.chr3:47627735:G/A" 0 0 10 0 0 0
-"FAM98C.chr19:38899400:G/A" 0 0 3 0 0 0
-"SETX.chr9:135136947:G/A" 0 0 13 0 0 0

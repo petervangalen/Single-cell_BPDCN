@@ -1,6 +1,0 @@
-"HSPC" "Ery" "Myeloid" "NK" "B.cells" "T.cells"
-"TET2.N281fs*" 0 4 42 10 3 0
-"TET2.V1395fs*" 0 2 63 7 1 0
-"ZRSR2.Y175*" 1 2 18 8 3 0
-"CCDC102A.chr16:57546441:C/T" 0 0 0 0 0 0
-"SEMA4A.chr1:156124483:C/A" 0 0 0 0 0 0

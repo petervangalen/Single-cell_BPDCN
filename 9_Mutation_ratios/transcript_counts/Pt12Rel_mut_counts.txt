@@ -1,6 +1,0 @@
-"HSPC" "Ery" "Myeloid" "NK" "B.cells" "T.cells"
-"TET2.Q1537*" 0 0 126 24 8 63
-"ZRSR2.828+2insT" 0 0 0 0 0 0
-"MALAT1.chr11:65270399:G/A" 0 0 81 3 10 0
-"NOTCH1.chr9:139389423:C/T" 0 0 58 8 7 0
-"NFIC.chr19:3462800:G/A" 0 0 54 0 8 0
