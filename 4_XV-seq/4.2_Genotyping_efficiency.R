@@ -22,7 +22,7 @@ names(seu_bpdcn.ls) <- gsub("_Seurat_Final.rds", "", cutf(seurat_files, d = "/",
 
 # Generate data frame for genotyping results
 genotyping_tables.tib <- read_excel("../4_XV-seq/XV-seq_overview.xlsx")
-# Replace different MTAP primers with one, just as in 4.1_Add_GoT-XV_to_Seurat.R
+# Replace different MTAP entries with one, just as in 4.1_Add_GoT-XV_to_Seurat.R
 genotyping_tables.tib$Mutation <- gsub("MTAP.rearr.*", "MTAP.rearr", genotyping_tables.tib$Mutation)
 genotyping_tables.tib <- genotyping_tables.tib %>% select(Sample, Mutation) %>% unique
 

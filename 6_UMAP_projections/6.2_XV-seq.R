@@ -18,8 +18,8 @@ source("../Single-cell_BPDCN_Functions.R")
 popcol.tib <- read_excel("../Single-cell_BPDCN_colors.xlsx")
 cell_colors <- popcol.tib$hex[1:23]
 names(cell_colors) <- popcol.tib$pop[1:23]
-mut_colors <- popcol.tib$hex[42:44]
-names(mut_colors) <- popcol.tib$pop[42:44]
+mut_colors <- popcol.tib$hex[45:47]
+names(mut_colors) <- popcol.tib$pop[45:47]
 
 # Load Seurat objects
 seurat_files <- list.files("../4_XV-seq", pattern = "*.rds", full.names = T)
@@ -31,7 +31,7 @@ seu_bpdcn_merge <- merge(seu.ls[[2]], seu.ls[3:length(seu.ls)])
 
 # Load genotyping information
 genotyping_tables.tib <- read_excel("../4_XV-seq/XV-seq_overview.xlsx")
-# Replace different MTAP primers with one, just as in 4.1_Add_GoT-XV_to_Seurat.R
+# Replace different MTAP entries with one, just as in 4.1_Add_GoT-XV_to_Seurat.R
 genotyping_tables.tib$Mutation <- gsub("MTAP.rearr.*", "MTAP.rearr", genotyping_tables.tib$Mutation)
 
 # Calculate healthy donors contour density

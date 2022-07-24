@@ -15,7 +15,7 @@ popcol.tib <- read_excel("../Single-cell_BPDCN_colors.xlsx")
 
 # Load genotyping information
 genotyping_tables.tib <- read_excel("../4_XV-seq/XV-seq_overview.xlsx")
-# Replace different MTAP primers with one, just as in 4.1_Add_GoT-XV_to_Seurat.R
+# Replace different MTAP entries with one, just as in 4.1_Add_GoT-XV_to_Seurat.R
 genotyping_tables.tib$Mutation <- gsub("MTAP.rearr.*", "MTAP.rearr", genotyping_tables.tib$Mutation)
 
 # Load and subset genotyping efficiency data

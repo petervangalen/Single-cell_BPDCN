@@ -136,7 +136,7 @@ dev.off()
 
 # Load genotyping information
 genotyping_tables.tib <- read_excel("../4_XV-seq/XV-seq_overview.xlsx")
-# Replace different MTAP primers with one, just as in 7_Add_GoT-XV_to_Seurat.R
+# Replace different MTAP entries with one, just as in 4.1_Add_GoT-XV_to_Seurat.R
 genotyping_tables.tib$Mutation <- gsub("MTAP.rearr.*", "MTAP.rearr", genotyping_tables.tib$Mutation)
 genotyping_tables.tib <- genotyping_tables.tib %>% dplyr::select(Sample, Mutation) %>% unique
 
@@ -174,40 +174,3 @@ dev.off()
 
 
 
-
-
-
-# >>>>>> Peter 220628: I did not run the rest of this script with the final processed data
-
-
-# RPS24 and PRKDC ---------------------------------------------------------------------------------
-
-Sample <- "Pt10Dx"
-Mut <- "RPS24.chr10:79795273:T/C"
-Mut <- "PRKDC.chr8:48713410:C/T"
-Mut <- "RAB9A.3pUTR"
-Mut <- "MTAP.rearr"
-
-metadata_df <- seu_bpdcn.ls[[Sample]]@meta.data[,c("project.umap.x", "project.umap.y", Mut)]
-colnames(metadata_df) <- c("project.umap.x", "project.umap.y", "mutated")
-metadata_df$mutated <- gsub("mutant", "#4B0092", gsub("wildtype", "#1AFF1A", gsub("no call", "grey", metadata_df$mutated)))
-metadata_df$mutated <- factor(metadata_df$mutated, levels = c("#4B0092", "#1AFF1A", "grey"))
-#metadata_df <- metadata_df[rev(order(metadata_df$mutated)),]
-metadata_df <- metadata_df[sample(nrow(metadata_df)),]
-metadata_df <- metadata_df[metadata_df$mutated != "grey",]
-
-pdf(paste0(Sample, "_", gsub("/|:", "-", Mut), ".pdf"), width = 6, height = 6)
-par(mar=c(4,4,4,4))
-print(
-  ggplot() +
-    geom_contour(data = meltbins, mapping = aes(x = Var1, y = Var2, z = value, color = after_stat(level)), bins = 10, size = 1) +
-    scale_color_gradient2(low = "grey", high = "black", guide="none") +
-    ggtitle(paste0(Mut, " in ", Sample, " (", nrow(metadata_df), " cells)")) +
-    geom_point(data = metadata_df, mapping = aes(x = project.umap.x, y = project.umap.y), color = metadata_df$mutated) +
-    theme(aspect.ratio = 1, axis.line=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(),
-          axis.ticks=element_blank(), axis.title.x=element_blank(), axis.title.y=element_blank(),
-          panel.border=element_rect(colour = "black", fill=NA, size=1), panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(), panel.background = element_blank(),
-          plot.title = element_text(hjust = 0.5, size = 14))
-)
-dev.off()
