@@ -10,9 +10,6 @@ rm(list=ls())
 
 # Functions & colors
 source("../Single-cell_BPDCN_Functions.R")
-#popcol.tib <- read_excel("../Single-cell_BPDCN_colors.xlsx")
-#cell_colors <- popcol.tib$hex[1:23]
-#names(cell_colors) <- popcol.tib$pop[1:23]
 
 # Load Seurat objects
 seurat_files <- list.files("../4_XV-seq", pattern = "*.rds", full.names = T)
@@ -32,7 +29,7 @@ stats.df <- data.frame(Sample_ID = names(seu_all_ls),
                        Genes_mean = unlist(lapply(seu_all_ls, function(x) mean(x$nFeature_RNA))),
                        Genes_min = unlist(lapply(seu_all_ls, function(x) min(x$nFeature_RNA))),
                        Genes_max = unlist(lapply(seu_all_ls, function(x) max(x$nFeature_RNA))))
-stats_order.df <- stats.df[c("BM1", "BM2", "BM3", "BM4", "BM5", "BM6", "Pt1Dx", "Pt1Mrd", "Pt5Dx", "Pt9Dx",
+stats_order.df <- stats.df[c("BM1", "BM2", "BM3", "BM4", "BM5", "BM6", "Pt1Dx", "Pt1Rem", "Pt5Dx", "Pt9Dx",
                              "Pt10Dx", "Pt10Rel", "Pt12Dx", "Pt12Rel", "Pt14Dx", "Pt15Dx", "Pt16Dx"),]
 write.table(stats_order.df, file = "stats.txt", row.names = F, sep = "\t", quote = F)
 

@@ -28,7 +28,7 @@ names(seu.ls) <- cutf(basename(seurat_files), d = "_")
 as_tibble(unlist(lapply(seu.ls, function(x) unique(x@meta.data$donor_group))), rownames = "sample") %>%
   mutate(value = factor(value, levels = c("healthy_bm", "skin_only", "bm_involvement"))) %>% arrange(value)
 bm_samples <- c("BM1", "BM2", "BM3", "BM4", "BM5", "BM6")
-skin_only_samples <- c("Pt1Mrd", "Pt5Dx", "Pt9Dx", "Pt10Dx", "Pt12Dx")
+skin_only_samples <- c("Pt1Rem", "Pt5Dx", "Pt9Dx", "Pt10Dx", "Pt12Dx")
 bm_involvement_samples <- c("Pt1Dx", "Pt10Rel", "Pt12Rel", "Pt14Dx", "Pt15Dx", "Pt16Dx")
 healthy_donor_freq <- do.call(cbind, lapply(split(seu.ls$BM@meta.data, f = cutf(seu.ls$BM@meta.data$replicate, d = "\\.")), function(x) table(x$CellType)))
 skin_only_freq <- do.call(cbind, lapply(seu.ls[skin_only_samples], function(x) table(x$CellType)))

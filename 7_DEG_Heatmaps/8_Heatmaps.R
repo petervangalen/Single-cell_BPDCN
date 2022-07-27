@@ -129,7 +129,7 @@ plot_mat <- as.matrix(GetAssayData(healthy_controls, slot = "data"))[CurrentMark
 pdf_name <- "Combined_Normal"
 
 # Or: for skin-only patients
-skin_only  <- merge(seu_filter.ls$Pt1Mrd, seu_filter.ls[c("Pt5Dx", "Pt9Dx", "Pt10Dx", "Pt12Dx")])
+skin_only  <- merge(seu_filter.ls$Pt1Rem, seu_filter.ls[c("Pt5Dx", "Pt9Dx", "Pt10Dx", "Pt12Dx")])
 metadata_df <- skin_only@meta.data[,c("CellType", "orig.ident")]
 metadata_df$CellType <- factor(metadata_df$CellType, levels = celltypes.ch)
 metadata_df$Donor <- factor(metadata_df$orig.ident, levels = unique(skin_only$orig.ident))

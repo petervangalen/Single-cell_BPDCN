@@ -16,7 +16,7 @@ source("../Single-cell_BPDCN_Functions.R")
 popcol.tib <- read_excel("../Single-cell_BPDCN_colors.xlsx")
 
 # Get results matrix for each non-involved sample
-Samples <- c("Pt1Mrd", "Pt5Dx", "Pt9Dx", "Pt10Dx", "Pt12Dx")
+Samples <- c("Pt1Rem", "Pt5Dx", "Pt9Dx", "Pt10Dx", "Pt12Dx")
 
 results.ls <- vector(mode = "list", length = length(Samples))
 names(results.ls) <- Samples
@@ -73,7 +73,7 @@ contingency_tables <- lapply(tet2_results.ls, function(x) {
 # Get P values
 lapply(contingency_tables, chisq.test)
 # Or one by one
-chisq.test(contingency_tables$Pt1Mrd)
+chisq.test(contingency_tables$Pt1Rem)
 chisq.test(contingency_tables$Pt5Dx)
 chisq.test(contingency_tables$Pt9Dx)
 chisq.test(contingency_tables$Pt10Dx)

@@ -9,7 +9,6 @@ library(data.table)
 library(gridExtra)
 library(viridis)
 library(MASS)
-#library(RColorBrewer); barplot(rep(1,11), col = brewer.pal(11, "RdBu"))
 
 setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/Github/6_UMAP_projections")
 
@@ -95,16 +94,16 @@ get_density <- function(x, y, ...) {
 
 # Make three Seurat objects, then calculate density on each their metadata tables
 bm <- seu.ls[["BM"]]
-skin_only <- merge(seu.ls[["Pt1Mrd"]], seu.ls[c("Pt5Dx", "Pt9Dx", "Pt10Dx", "Pt12Dx")])
-bm_involvement <- merge(seu.ls[["Pt1Dx"]], seu.ls[c("Pt10Rel", "Pt12Rel", "Pt14Dx", "Pt15Dx", "Pt16Dx")])
+skin_only <- merge(seu.ls[["Pt1Rem"]], seu.ls[c("Pt5Dx", "Pt9Dx", "Pt10Dx", "Pt12Dx")])
+bm_involved <- merge(seu.ls[["Pt1Dx"]], seu.ls[c("Pt10Rel", "Pt12Rel", "Pt14Dx", "Pt15Dx", "Pt16Dx")])
 
-bm_metadata <- tibble(bm@meta.data) %>% dplyr::select(UMAP_1, UMAP_2, donor_group) %>%
+bm_metadata <- tibble(bm@meta.data) %>% dplyr::select(UMAP_1, UMAP_2, bm_involvement) %>%
   rename(x = UMAP_1, y = UMAP_2) %>%
   mutate(Density = get_density(x = x, y = y, n = 100))
-skin_only_metadata <- tibble(skin_only@meta.data) %>% dplyr::select(project.umap.x, project.umap.y, donor_group) %>%
+skin_only_metadata <- tibble(skin_only@meta.data) %>% dplyr::select(project.umap.x, project.umap.y, bm_involvement) %>%
   rename(x = project.umap.x, y = project.umap.y) %>%
   mutate(Density = get_density(x = x, y = y, n = 100))
-bm_involvement_metadata <- tibble(bm_involvement@meta.data) %>% dplyr::select(project.umap.x, project.umap.y, donor_group) %>%
+bm_involvement_metadata <- tibble(bm_involved@meta.data) %>% dplyr::select(project.umap.x, project.umap.y, bm_involvement) %>%
   rename(x = project.umap.x, y = project.umap.y) %>%
   mutate(Density = get_density(x = x, y = y, n = 100))
 

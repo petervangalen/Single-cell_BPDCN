@@ -95,10 +95,10 @@ seu_anno.ls$Pt10Rel@meta.data[,which(grepl("MTAP.rearr.\\d", colnames(seu_anno.l
 # Add metadata about donor group. Also exclude the "Doublets" level (doublets were already removed in 3.1_RandomForest.R)
 lapply(names(seu_anno.ls), function(x) {
   #x <- names(seu_anno.ls)[1]
-  if (x %in% c("Pt1Mrd", "Pt5Dx", "Pt9Dx", "Pt10Dx", "Pt12Dx")) {
-    seu_anno.ls[[x]]$donor_group <- "skin_only"
+  if (x %in% c("Pt1Rem", "Pt5Dx", "Pt9Dx", "Pt10Dx", "Pt12Dx")) {
+    seu_anno.ls[[x]]$bm_involvement <- "No"
   } else if (x %in% c("Pt1Dx", "Pt10Rel", "Pt12Rel", "Pt14Dx", "Pt15Dx", "Pt16Dx")) {
-    seu_anno.ls[[x]]$donor_group <- "bm_involvement"
+    seu_anno.ls[[x]]$bm_involvement <- "Yes"
   }
   seu_anno.ls[[x]]$CellType <- factor(seu_anno.ls[[x]]$CellType, levels = setdiff(levels(seu_anno.ls[[x]]$CellType), "Doublets"))
   saveRDS(seu_anno.ls[[x]], file = paste0(x, "_Seurat_Final.rds"))
@@ -109,7 +109,7 @@ lapply(names(seu_anno.ls), function(x) {
 # Since these are the final Seurat objects I will use for subsequent analyses, I will similarly save the healthy controls
 bm_subset <- subset(bm, subset = CellType != "Doublets")
 bm_subset$CellType <- factor(bm_subset$CellType, levels = setdiff(levels(bm_subset$CellType), "Doublets"))
-bm_subset$donor_group <- "healthy_bm"
+bm_subset$bm_involvement <- "HD"
 bm_subset@commands <- list()
 saveRDS(bm_subset, file = "BM_Seurat_Final.rds")
 

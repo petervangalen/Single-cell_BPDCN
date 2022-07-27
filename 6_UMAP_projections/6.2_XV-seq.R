@@ -16,8 +16,8 @@ rm(list=ls())
 # Functions & colors
 source("../Single-cell_BPDCN_Functions.R")
 popcol.tib <- read_excel("../Single-cell_BPDCN_colors.xlsx")
-cell_colors <- popcol.tib$hex[1:23]
-names(cell_colors) <- popcol.tib$pop[1:23]
+cell_colors <- popcol.tib$hex[1:22]
+names(cell_colors) <- popcol.tib$pop[1:22]
 mut_colors <- popcol.tib$hex[45:47]
 names(mut_colors) <- popcol.tib$pop[45:47]
 
@@ -53,16 +53,16 @@ pdf_name <- "progression_mutations"
 
 # Calculate which cells were mutated
 metadata_tib <- as_tibble(seu_bpdcn_merge@meta.data) %>%
-  dplyr::select(orig.ident, project.umap.x, project.umap.y, genotyping_tables.tib$Mutation, CellType, donor_group)
+  dplyr::select(orig.ident, project.umap.x, project.umap.y, genotyping_tables.tib$Mutation, CellType, bm_involvement)
 # Add metadata column indicating the mutational status of each cell
 metadata_tib$call <- ifelse(apply(dplyr::select(metadata_tib, all_of(muts)), 1, 
-                                  function(x) sum(grepl("wildtype", x) > 0)), yes = "wildtype", no = "no_call")
+                                  function(x) sum(grepl("wildtype", x) > 0)), yes = "wildtype", no = "no call")
 metadata_tib$call <- ifelse(apply(dplyr::select(metadata_tib, all_of(muts)), 1,
                                   function(x) sum(grepl("mutant", x) > 0)), yes = "mutant", no = metadata_tib$call)
 
 # Reorder for plotting
-no_call <- metadata_tib %>% filter(call == "no_call")
-called <- metadata_tib %>% filter(call != "no_call")
+no_call <- metadata_tib %>% filter(call == "no call")
+called <- metadata_tib %>% filter(call != "no call")
 called <- called %>% mutate(my_order = sample(1:nrow(called))) %>% arrange(my_order) %>% mutate(my_order = NULL)
 metadata_order_tib <- rbind(no_call, called)
 
@@ -82,7 +82,7 @@ p1 <- ggplot() +
         plot.title = element_text(hjust = 0.5, size = 14))
 
 # Plot skin-only patients
-metadata_order_skin_only <- metadata_order_tib %>% filter(donor_group == "skin_only")
+metadata_order_skin_only <- metadata_order_tib %>% filter(bm_involvement == "No")
 p2 <- ggplot() +
   geom_contour(data = meltbins, mapping = aes(x = Var1, y = Var2, z = value, color = after_stat(level)), bins = 10, size = 1) +
   scale_color_gradient2(low = "grey", high = "black", guide="none") +
@@ -96,7 +96,7 @@ p2 <- ggplot() +
         plot.title = element_text(hjust = 0.5, size = 14))
 
 # Plot BM involvement patients
-metadata_order_bm_involvement <- metadata_order_tib %>% filter(donor_group == "bm_involvement")
+metadata_order_bm_involvement <- metadata_order_tib %>% filter(bm_involvement == "Yes")
 p3 <- ggplot() +
   geom_contour(data = meltbins, mapping = aes(x = Var1, y = Var2, z = value, color = after_stat(level)), bins = 10, size = 1) +
   scale_color_gradient2(low = "grey", high = "black", guide="none") +
@@ -114,9 +114,9 @@ grid.arrange(p1, p2, p3, ncol = 3)
 dev.off()
 
 # For the text: how many mutated and wild-type cells in skin-only patients? (use for all mutations)
-metadata_tib %>% filter(donor_group == "skin_only") %>% .$call %>% table
+metadata_tib %>% filter(bm_involvement == "No") %>% .$call %>% table
 # How many mutated and wild-type cells in bm involvement patients? (use for progression mutations)
-metadata_tib %>% filter(donor_group == "bm_involvement") %>% .$call %>% table
+metadata_tib %>% filter(bm_involvement == "Yes") %>% .$call %>% table
 
 
 # Overall heatmap of mutation ratio ---------------------------------------------------------------
@@ -151,7 +151,7 @@ p1 <- count2_tib %>%
   scale_fill_gradient(low = "white", high = "#4B0092", limits = c(0, 1))
 
 # Skin-only: Make table, then visualize
-count_tib <- metadata_tib %>% filter(donor_group == "skin_only") %>% group_by(lineage, call) %>% count()
+count_tib <- metadata_tib %>% filter(bm_involvement == "No") %>% group_by(lineage, call) %>% count()
 count2_tib <- count_tib %>% pivot_wider(id_cols = lineage, names_from = call, values_from = n) %>%
   mutate(total = sum(mutant, wildtype))
 p2 <- count2_tib %>%
@@ -166,7 +166,7 @@ p2 <- count2_tib %>%
   scale_fill_gradient(low = "white", high = "#4B0092", limits = c(0, 1))
 
 # BM involvement: Make table, then visualize
-count_tib <- metadata_tib %>% filter(donor_group == "bm_involvement")  %>% group_by(lineage, call) %>% count()
+count_tib <- metadata_tib %>% filter(bm_involvement == "Yes")  %>% group_by(lineage, call) %>% count()
 count2_tib <- count_tib %>% pivot_wider(id_cols = lineage, names_from = call, values_from = n) %>%
   mutate(total = sum(mutant, wildtype))
 p3 <- count2_tib %>%
@@ -196,7 +196,7 @@ chisq.test(count_mat)
 stopifnot(pdf_name == "progression_mutations")
 
 # Add a column specifying pDCs vs. all others
-metadata_tib <- metadata_tib %>% filter(donor_group == "bm_involvement") %>%
+metadata_tib <- metadata_tib %>% filter(bm_involvement == "Yes") %>%
   mutate(pDC = ifelse(CellType == "pDC", yes = "pDC", no = "Other")) %>%
   mutate(pDC = factor(pDC, levels = c("pDC", "Other")))
 

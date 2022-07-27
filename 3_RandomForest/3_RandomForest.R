@@ -68,9 +68,9 @@ Process_10X <- function(RData, patient_id) {
 TenX_samples.tib <- tribble(~Patient_ID, ~RData, ~Note,
                             "Pt1Dx-2", "../../CellRanger/Pt1Dx-2/Pt1Dx-2.RData", "",
                             "Pt1Dx-3", "../../CellRanger/Pt1Dx-3/Pt1Dx-3.RData", "",
-                            "Pt1Mrd-1", "../../CellRanger/Pt1Mrd-1/Pt1Mrd-1.RData", "",
-                            "Pt1Mrd-2", "../../CellRanger/Pt1Mrd-2/Pt1Mrd-2.RData", "",
-                            "Pt1Mrd-3", "../../CellRanger/Pt1Mrd-3/Pt1Mrd-3.RData", "",
+                            "Pt1Rem-1", "../../CellRanger/Pt1Rem-1/Pt1Rem-1.RData", "",
+                            "Pt1Rem-2", "../../CellRanger/Pt1Rem-2/Pt1Rem-2.RData", "",
+                            "Pt1Rem-3", "../../CellRanger/Pt1Rem-3/Pt1Rem-3.RData", "",
                             "Pt5Dx-1", "../../CellRanger/Pt5Dx-1/Pt5Dx-1.RData", "",
                             "Pt5Dx-3", "../../CellRanger/Pt5Dx-3/Pt5Dx-3.RData", "",
                             "Pt10Dx-1", "../../CellRanger/Pt10Dx-1/Pt10Dx-1.RData", "Included in submission",
@@ -101,7 +101,7 @@ for (x in 1:nrow(TenX_samples.tib)) {
 }
 names(seu_10x.ls) <- TenX_samples.tib$Patient_ID
 seu.ls <- list(Pt1Dx = merge(seu_10x.ls$`Pt1Dx-2`, list(seu_10x.ls$`Pt1Dx-3`)),
-               Pt1Mrd = merge(seu_10x.ls$`Pt1Mrd-1`, list(seu_10x.ls$`Pt1Mrd-2`, seu_10x.ls$`Pt1Mrd-3`)),
+               Pt1Rem = merge(seu_10x.ls$`Pt1Rem-1`, list(seu_10x.ls$`Pt1Rem-2`, seu_10x.ls$`Pt1Rem-3`)),
                Pt5Dx = merge(seu_10x.ls$`Pt5Dx-1`, list(seu_10x.ls$`Pt5Dx-3`)),
                Pt9Dx = Pt9Dx.seu,
                Pt10Dx = merge(seu_10x.ls$`Pt10Dx-1`, list(seu_10x.ls$`Pt10Dx-2`, seu_10x.ls$`Pt10Dx-3`, seu_10x.ls$`Pt10Dx-4`)),
@@ -294,8 +294,6 @@ stopifnot(all(rownames(predictions.mat.ls[[Patient_ID]]) == colnames(s)))
 #for (x in colnames(predictions.mat.ls[[Patient_ID]])) {
 #    s <- AddMetaData(s, predictions.mat.ls[[Patient_ID]][,x], col.name = paste0("Predict.", x))
 #}
-
-
 
 # Add other metadata, exclude doublets, save
 s$CellType <- bpdcn.project.umap$CellType
