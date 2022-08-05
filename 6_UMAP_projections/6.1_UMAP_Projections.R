@@ -59,7 +59,6 @@ bpdcn.project.umap <- data.frame(project.umap.x = seu@meta.data$project.umap.x,
 
 # Plot
 pdf(paste0("cell_projections/", patient_id, ".pdf"), width = 6, height = 6)
-par(mar=c(4,4,4,4))
 
 # Project on bm density
 print(
@@ -107,26 +106,54 @@ bm_involvement_metadata <- tibble(bm_involved@meta.data) %>% dplyr::select(proje
   rename(x = project.umap.x, y = project.umap.y) %>%
   mutate(Density = get_density(x = x, y = y, n = 100))
 
-theme_set(theme_bw() + theme(aspect.ratio = 1, axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(),
-             panel.grid = element_blank(), plot.title = element_text(hjust = 0.5)))
+
 
 pdf("6.1_Density_plots.pdf", width = 20, height = 6)
 
+
+
+##### THIS SECTION IS UNDER CONSTRUCTION #####
+
 # Three plots side-by-side. Instead of grid.arrange, you could use facet_wrap, but that doesn't allow separate color scales for each.
-p1 <- bm_metadata %>%
+#p1 <- 
+bm_metadata %>%
   ggplot(aes(x, y, color = Density)) +
   geom_point(size = 0.5) +
-  scale_color_viridis()
+  scale_color_gradientn(colors = c("#BABCBC", "#A4A4A4", "#6F6F6F", "#4A4B4B", "#1F1F1F", "#FF0038")) +
+#  scale_color_viridis() +
+  theme_bw() +
+  theme(aspect.ratio = 1, axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(),
+        panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))
 p2 <- skin_only_metadata %>%
   ggplot(aes(x, y, color = Density)) +
   geom_point(size = 0.5) +
-  scale_color_viridis()
+  scale_color_viridis() +
+  theme_bw() +
+  theme(aspect.ratio = 1, axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(),
+        panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))
 p3 <- bm_involvement_metadata %>%
   ggplot(aes(x, y, color = Density)) +
   geom_point(size = 0.5) +
-  scale_color_viridis()
+  scale_color_viridis() +
+  theme_bw() +
+  theme(aspect.ratio = 1, axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(),
+        panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))
 
 grid.arrange(p1, p2, p3, ncol = 3)
+
+
+
+bind_rows(HD = bm_metadata, No = skin_only_metadata, Yes = bm_involvement_metadata, .id = "id") %>%
+  ggplot(aes(x, y, color = Density)) +
+  geom_point(size = 0.5) +
+  scale_color_gradientn(colors = c("#BABCBC", "#A4A4A4", "#6F6F6F", "#4A4B4B", "#1F1F1F", "#FF0038")) +
+  #  scale_color_viridis() +
+  facet_wrap(~ id)
+  theme_bw() +
+  theme(aspect.ratio = 1, axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(),
+        panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))
+
+
 
 dev.off()
 
