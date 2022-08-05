@@ -8,7 +8,7 @@ library(readxl)
 rm(list=ls())
 
 # Set working directory
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/Github/4_XV-seq")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/4_XV-seq")
 
 # Load commonly used function
 cutf <- function(x, f=1, d="/") sapply(strsplit(x, d), function(i) paste(i[f], collapse=d))

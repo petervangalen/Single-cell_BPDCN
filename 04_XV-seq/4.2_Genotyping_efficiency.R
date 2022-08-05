@@ -9,7 +9,7 @@ library(data.table)
 rm(list=ls())
 
 # Set working directory
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/Github/4_XV-seq")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/4_XV-seq")
 
 # Functions & colors
 source("../Single-cell_BPDCN_Functions.R")

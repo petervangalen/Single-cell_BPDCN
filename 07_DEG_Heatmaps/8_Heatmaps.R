@@ -8,7 +8,7 @@ library(ComplexHeatmap)
 library(data.table)
 library(limma)
 
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/Github/7_DEG_Heatmaps")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/7_DEG_Heatmaps")
 
 rm(list=ls())
 

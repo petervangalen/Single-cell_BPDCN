@@ -17,7 +17,7 @@ library(circlize)
 rm(list=ls())
 
 # Set working directory
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/Github/9_pDC_Expr")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/9_pDC_Expr")
 
 # Functions & colors
 source("../Single-cell_BPDCN_Functions.R")

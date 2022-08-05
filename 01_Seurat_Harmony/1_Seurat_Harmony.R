@@ -6,7 +6,7 @@ library(Seurat)
 library(harmony)
 library(ggforce)
 
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/Github/1_Seurat_Harmony")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/1_Seurat_Harmony")
 
 rm(list=ls())
 

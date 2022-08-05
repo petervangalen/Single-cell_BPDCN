@@ -7,7 +7,7 @@ library(readxl)
 library(data.table)
 library(limma)
 
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/Github/2_Annotate")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/2_Annotate")
 
 rm(list=ls())
 

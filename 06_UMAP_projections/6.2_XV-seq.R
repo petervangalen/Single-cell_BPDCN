@@ -9,7 +9,7 @@ library(gridExtra)
 library(KernSmooth)
 library(MASS)
 
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/Github/6_UMAP_projections")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/6_UMAP_projections")
 
 rm(list=ls())
 

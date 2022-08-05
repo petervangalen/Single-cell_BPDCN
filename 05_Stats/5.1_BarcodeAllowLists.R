@@ -4,7 +4,7 @@
 library(tidyverse)
 library(Seurat)
 
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/Github/5_Stats")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/5_Stats")
 
 rm(list=ls())
 

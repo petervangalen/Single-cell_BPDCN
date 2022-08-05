@@ -7,7 +7,7 @@ library(readxl)
 library(randomForest)
 library(gplots)
 
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/Github/3_RandomForest")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/3_RandomForest")
 
 rm(list=ls())
 
