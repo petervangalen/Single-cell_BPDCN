@@ -4,7 +4,7 @@
 library(tidyverse)
 library(Seurat)
 
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/5_Stats")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/05_Stats")
 
 rm(list=ls())
 
@@ -17,7 +17,7 @@ group_colors <- popcol.tib$hex[42:44]
 names(group_colors) <- popcol.tib$pop[42:44]
 
 # Load Seurat objects
-seurat_files <- list.files("../4_XV-seq", pattern = "*.rds", full.names = T)
+seurat_files <- list.files("../04_XV-seq", pattern = "*.rds", full.names = T)
 seu.ls <- lapply(seurat_files, function(x) readRDS(x))
 names(seu.ls) <- cutf(basename(seurat_files), d = "_")
 

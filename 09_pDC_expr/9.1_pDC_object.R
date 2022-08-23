@@ -13,7 +13,7 @@ library(viridis)
 rm(list=ls())
 
 # Set working directory
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/9_pDC_Expr")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/09_pDC_Expr")
 
 # Functions & colors
 source("../Single-cell_BPDCN_Functions.R")
@@ -24,7 +24,7 @@ group_colors <- popcol.tib$hex[42:44]
 names(group_colors) <- popcol.tib$pop[42:44]
 
 # Load Seurat objects
-seurat_files <- list.files("../4_XV-seq", pattern = "*.rds", full.names = T)
+seurat_files <- list.files("../04_XV-seq", pattern = "*.rds", full.names = T)
 seu_ls <- lapply(seurat_files, function(x) readRDS(x))
 names(seu_ls) <- cutf(basename(seurat_files), d = "_")
 seu <- merge(seu_ls[[1]], seu_ls[2:length(seu_ls)])
@@ -36,7 +36,7 @@ skin_only_samples <- unique(filter(metadata_tib, bm_involvement == "No")$orig.id
 bm_involvement_samples <- unique(filter(metadata_tib, bm_involvement == "Yes")$orig.ident) %>% .[c(6,1,2,3,4,5)]
 
 # Load genotyping information
-genotyping_tables.tib <- read_excel("../4_XV-seq/XV-seq_overview.xlsx")
+genotyping_tables.tib <- read_excel("../04_XV-seq/XV-seq_overview.xlsx")
 # Replace different MTAP entries with one, just as in 4.1_Add_GoT-XV_to_Seurat.R
 genotyping_tables.tib$Mutation <- gsub("MTAP.rearr.*", "MTAP.rearr", genotyping_tables.tib$Mutation)
 

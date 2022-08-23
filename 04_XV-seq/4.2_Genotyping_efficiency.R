@@ -9,19 +9,19 @@ library(data.table)
 rm(list=ls())
 
 # Set working directory
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/4_XV-seq")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/04_XV-seq")
 
 # Functions & colors
 source("../Single-cell_BPDCN_Functions.R")
 popcol.tib <- read_excel("../Single-cell_BPDCN_colors.xlsx")
 
 # Load Seurat objects
-seurat_files <- list.files("../4_XV-seq", pattern = "*.rds", full.names = T)
+seurat_files <- list.files("../04_XV-seq", pattern = "*.rds", full.names = T)
 seu_bpdcn.ls <- lapply(seurat_files, function(x) readRDS(x))
 names(seu_bpdcn.ls) <- gsub("_Seurat_Final.rds", "", cutf(seurat_files, d = "/", f = 3))
 
 # Generate data frame for genotyping results
-genotyping_tables.tib <- read_excel("../4_XV-seq/XV-seq_overview.xlsx")
+genotyping_tables.tib <- read_excel("../04_XV-seq/XV-seq_overview.xlsx")
 # Replace different MTAP entries with one, just as in 4.1_Add_GoT-XV_to_Seurat.R
 genotyping_tables.tib$Mutation <- gsub("MTAP.rearr.*", "MTAP.rearr", genotyping_tables.tib$Mutation)
 genotyping_tables.tib <- genotyping_tables.tib %>% select(Sample, Mutation) %>% unique

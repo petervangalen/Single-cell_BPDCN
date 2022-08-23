@@ -4,7 +4,7 @@
 library(tidyverse)
 library(Seurat)
 
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/5_Stats")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/05_Stats")
 
 rm(list=ls())
 
@@ -12,7 +12,7 @@ rm(list=ls())
 source("../Single-cell_BPDCN_Functions.R")
 
 # Load Seurat objects
-seurat_files <- list.files("../4_XV-seq", pattern = "*.rds", full.names = T)
+seurat_files <- list.files("../04_XV-seq", pattern = "*.rds", full.names = T)
 seu.ls <- lapply(seurat_files, function(x) readRDS(x))
 names(seu.ls) <- cutf(basename(seurat_files), d = "_")
 

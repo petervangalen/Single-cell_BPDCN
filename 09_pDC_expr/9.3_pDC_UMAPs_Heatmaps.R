@@ -17,7 +17,7 @@ library(circlize)
 rm(list=ls())
 
 # Set working directory
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/9_pDC_Expr")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/09_pDC_Expr")
 
 # Functions & colors
 source("../Single-cell_BPDCN_Functions.R")
@@ -34,7 +34,7 @@ pdcs <- readRDS("pdcs.rds")
 bpdcn_sign <- read.table("bpdcn_sign.txt")[,1]
 
 # Load genotyping information
-genotyping_tables.tib <- read_excel("../4_XV-seq/XV-seq_overview.xlsx")
+genotyping_tables.tib <- read_excel("../04_XV-seq/XV-seq_overview.xlsx")
 # Replace different MTAP entries with one, just as in 4.1_Add_GoT-XV_to_Seurat.R
 genotyping_tables.tib$Mutation <- gsub("MTAP.rearr.*", "MTAP.rearr", genotyping_tables.tib$Mutation)
 
@@ -130,14 +130,17 @@ dev.off()
 
 # First, subset for a heatmap showing pDCs from healthy donors and those with malignant infiltration
 healthy_ids <- subset(pdcs, subset = bm_involvement == "HD") %>% colnames() %>% sample(6*30)
-malignant_ids <- as_tibble(pdcs@meta.data, rownames = "cell") %>% filter(bm_involvement == "Yes") %>%
+malignant_ids <- as_tibble(pdcs@meta.data, rownames = "cell") %>%
+  filter(bm_involvement == "Yes", any_mut != "no call") %>%
   group_by(orig.ident) %>% slice_sample(n = 30) %>% .$cell
 seu_healthy_malignant <- subset(pdcs, cells = c(healthy_ids, malignant_ids))
 
 # Then, subset data for for a heatmap showing pDCs of skin-only patients
 remove_cells <- as_tibble(seu_skin_only@meta.data, rownames = "cell") %>%
-  filter(bpdcn_sign_score < 0, is.na(any_mut) | any_mut == "no call") %>% .$cell
-seu_skin_subset <- subset(seu_skin_only, cells = setdiff(colnames(seu_skin_only), remove_cells))
+  filter(bpdcn_sign_score < 0, any_mut == "no call") %>% .$cell
+keep_cells <- as_tibble(seu_skin_only@meta.data, rownames = "cell") %>%
+  filter(! cell %in% remove_cells) %>% arrange(orig.ident) %>% .$cell
+seu_skin_subset <- subset(seu_skin_only, cells = keep_cells)
 
 # What mutations to show (for both heatmaps)?
 mutation_detection <- as_tibble(merge(seu_healthy_malignant, seu_skin_subset)@meta.data) %>%
@@ -176,10 +179,10 @@ bottom_anno.ha <- HeatmapAnnotation(Founder = as.matrix(hm_anno_df[,show_f_mut])
 hm <- Heatmap(as.matrix(expr_mat),
               col = colItay(c(1:11))[3:11],
               cluster_rows = F,
-              cluster_columns = T,
+              cluster_columns = F,
               row_names_gp = gpar(fontsize = 6),
               show_column_names = F,
-              column_split = 2,
+              column_split = factor(ifelse(grepl("BM", hm_anno_df$orig.ident), yes = "BM", no = "BPDCN"), levels = c("BM", "BPDCN")),
               top_annotation = top_anno.ha,
               bottom_annotation = bottom_anno.ha,
               name = "Expr",
@@ -220,10 +223,11 @@ bottom_anno.ha <- HeatmapAnnotation(Founder = as.matrix(hm_anno_df[,show_f_mut])
 hm <- Heatmap(as.matrix(expr_mat),
               col = colItay(c(1:11))[3:11],
               cluster_rows = F,
-              cluster_columns = T,
+              cluster_columns = F,
               row_names_gp = gpar(fontsize = 6),
               show_column_names = F,
-              column_split = 2,
+              column_split = factor(ifelse(hm_anno_df$bpdcn_sign_score > 0, yes = "Putative malignant", no = "Normal"),
+                                    levels = c("Normal", "Putative malignant")),
               top_annotation = top_anno.ha,
               bottom_annotation = bottom_anno.ha,
               name = "Expr",

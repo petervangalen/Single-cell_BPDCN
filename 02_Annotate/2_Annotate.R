@@ -7,7 +7,7 @@ library(readxl)
 library(data.table)
 library(limma)
 
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/2_Annotate")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/02_Annotate")
 
 rm(list=ls())
 
@@ -18,8 +18,8 @@ my_colors <- popcol.tib$hex
 names(my_colors) <- popcol.tib$pop
 
 # Load data
-bm <- readRDS("../1_Seurat_Harmony/BM_Seurat_clusters.rds")
-tnk <- readRDS("../1_Seurat_Harmony/TNK_Seurat_clusters.rds")
+bm <- readRDS("../01_Seurat_Harmony/BM_Seurat_clusters.rds")
+tnk <- readRDS("../01_Seurat_Harmony/TNK_Seurat_clusters.rds")
 # Make Seurat's count matrix easier to access (log, transcript per 10K)
 bm_expr.mat <- as.matrix( GetAssayData(object = bm, slot = "data") )
 tnk_expr.mat <- as.matrix( GetAssayData(object = tnk, slot = "data") )

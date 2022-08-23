@@ -10,7 +10,7 @@ library(gridExtra)
 library(viridis)
 library(MASS)
 
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/6_UMAP_projections")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/06_UMAP_projections")
 
 rm(list=ls())
 
@@ -21,7 +21,7 @@ cell_colors <- popcol.tib$hex[1:22]
 names(cell_colors) <- popcol.tib$pop[1:22]
 
 # Load Seurat objects
-seurat_files <- list.files("../4_XV-seq", pattern = "*.rds", full.names = T)
+seurat_files <- list.files("../04_XV-seq", pattern = "*.rds", full.names = T)
 seu.ls <- lapply(seurat_files, function(x) readRDS(x))
 names(seu.ls) <- cutf(basename(seurat_files), d = "_")
 
@@ -106,53 +106,47 @@ bm_involvement_metadata <- tibble(bm_involved@meta.data) %>% dplyr::select(proje
   rename(x = project.umap.x, y = project.umap.y) %>%
   mutate(Density = get_density(x = x, y = y, n = 100))
 
-
-
-pdf("6.1_Density_plots.pdf", width = 20, height = 6)
-
-##### THIS SECTION IS UNDER CONSTRUCTION #####
-
-#density_colors <- c("#BABCBC", "#A4A4A4", "#6F6F6F", "#4A4B4B", "#1F1F1F", "#FF0038")
-#density_colors <- c("#BABCBC", "#FF0038")
-#density_colors <- c("#eb9d9d", "#e57f7f", "#df6161", "#d94444", "#d02929", "#b22323", "#941d1d", "#771717", "#591111", "#3b0b0b")
-#density_colors <- c("#FFCFB3", "#F6978D", "#833F72", "#10175B")# "#472261")#, )
 # From https://www.schemecolor.com/light-green-to-blue-gradient.php
 density_colors <- c("#90EE90", "#67D89A", "#34BEA5", "#1EA9AC", "#1D80AF", "#1C61B1")
 
-# Three plots side-by-side. Instead of grid.arrange, you could use facet_wrap, but that doesn't allow separate color scales for each.
+# Plot
+pdf("6.1_Density_plots.pdf", width = 20, height = 6)
+
+# Three plots side-by-side
 p1 <- bm_metadata %>%
   ggplot(aes(x, y, color = Density)) +
   geom_point(size = 1) +
-  scale_color_gradientn(colors = density_colors, trans = "log") +
+  scale_color_gradientn(colors = density_colors) +
   annotate("rect", xmin = 6, xmax = 8, ymin = 9, ymax = 13, color = "black", fill = NA) +
   annotate("text", label = paste0(round(nrow(filter(bm_metadata, between(x, 6, 8), between(y, 9, 13)))/nrow(bm_metadata)*100, 2), "%"),
-           x = 10, y = 11, color = "black") +
+           x = 10, y = 11, color = "black", size = 7) +
   theme_bw() +
   theme(aspect.ratio = 1, axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(),
         panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))
 p2 <- skin_only_metadata %>%
   ggplot(aes(x, y, color = Density)) +
   geom_point(size = 1) +
-  scale_color_gradientn(colors = density_colors, trans = "log") +
+  scale_color_gradientn(colors = density_colors) +
   annotate("rect", xmin = 6, xmax = 8, ymin = 9, ymax = 13, color = "black", fill = NA) +
   annotate("text", label = paste0(round(nrow(filter(skin_only_metadata, between(x, 6, 8), between(y, 9, 13)))/nrow(skin_only_metadata)*100, 2), "%"),
-           x = 10, y = 11, color = "black") +
+           x = 10, y = 11, color = "black", size = 7) +
   theme_bw() +
   theme(aspect.ratio = 1, axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(),
         panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))
 p3 <- bm_involvement_metadata %>%
   ggplot(aes(x, y, color = Density)) +
   geom_point(size = 1) +
-  scale_color_gradientn(colors = density_colors, trans = "log") +
+  scale_color_gradientn(colors = density_colors) +
   annotate("rect", xmin = 6, xmax = 8, ymin = 9, ymax = 13, color = "black", fill = NA) +
   annotate("text", label = paste0(round(nrow(filter(bm_involvement_metadata, between(x, 6, 8), between(y, 9, 13)))/nrow(bm_involvement_metadata)*100, 2), "%"),
-           x = 10, y = 11, color = "black") +
+           x = 10, y = 11, color = "black", size = 7) +
   theme_bw() +
   theme(aspect.ratio = 1, axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(),
         panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))
 
 grid.arrange(p1, p2, p3, ncol = 3)
 
+# Instead of grid.arrange, you could use facet_wrap, but that doesn't allow separate color scales for each:
 #bind_rows(HD = bm_metadata, No = skin_only_metadata, Yes = bm_involvement_metadata, .id = "id") %>%
 #  ggplot(aes(x, y, color = Density)) +
 #  geom_point(size = 0.5) +

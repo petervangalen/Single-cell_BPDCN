@@ -8,14 +8,14 @@ library(readxl)
 rm(list=ls())
 
 # Set working directory
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/4_XV-seq")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/04_XV-seq")
 
 # Load commonly used function
 cutf <- function(x, f=1, d="/") sapply(strsplit(x, d), function(i) paste(i[f], collapse=d))
 
 # Load BPDCN Seurat objects
-bm <- readRDS("../2_Annotate/BM_Seurat_CellTypes.rds")
-seurat_files <- list.files("../3_RandomForest", pattern = "*.rds", full.names = T)
+bm <- readRDS("../02_Annotate/BM_Seurat_CellTypes.rds")
+seurat_files <- list.files("../03_RandomForest", pattern = "*.rds", full.names = T)
 seu_predict.ls <- lapply(seurat_files, function(x) readRDS(x))
 names(seu_predict.ls) <- gsub("_Seurat_Predict.rds", "", cutf(seurat_files, "/", f = 3))
 

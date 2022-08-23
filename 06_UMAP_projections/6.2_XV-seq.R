@@ -9,7 +9,7 @@ library(gridExtra)
 library(KernSmooth)
 library(MASS)
 
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/6_UMAP_projections")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/06_UMAP_projections")
 
 rm(list=ls())
 
@@ -22,7 +22,7 @@ mut_colors <- popcol.tib$hex[45:47]
 names(mut_colors) <- popcol.tib$pop[45:47]
 
 # Load Seurat objects
-seurat_files <- list.files("../4_XV-seq", pattern = "*.rds", full.names = T)
+seurat_files <- list.files("../04_XV-seq", pattern = "*.rds", full.names = T)
 seu.ls <- lapply(seurat_files, function(x) readRDS(x))
 names(seu.ls) <- cutf(basename(seurat_files), d = "_")
 
@@ -30,7 +30,7 @@ names(seu.ls) <- cutf(basename(seurat_files), d = "_")
 seu_bpdcn_merge <- merge(seu.ls[[2]], seu.ls[3:length(seu.ls)])
 
 # Load genotyping information
-genotyping_tables.tib <- read_excel("../4_XV-seq/XV-seq_overview.xlsx")
+genotyping_tables.tib <- read_excel("../04_XV-seq/XV-seq_overview.xlsx")
 # Replace different MTAP entries with one, just as in 4.1_Add_GoT-XV_to_Seurat.R
 genotyping_tables.tib$Mutation <- gsub("MTAP.rearr.*", "MTAP.rearr", genotyping_tables.tib$Mutation)
 

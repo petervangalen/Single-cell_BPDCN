@@ -5,7 +5,7 @@ library(tidyverse)
 library(Seurat)
 library(readxl)
 
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/5_Stats")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/05_Stats")
 
 rm(list=ls())
 
@@ -14,7 +14,7 @@ source("../Single-cell_BPDCN_Functions.R")
 popcol.tib <- read_excel("../Single-cell_BPDCN_colors.xlsx")
 
 # Load genotyping information
-genotyping_tables.tib <- read_excel("../4_XV-seq/XV-seq_overview.xlsx")
+genotyping_tables.tib <- read_excel("../04_XV-seq/XV-seq_overview.xlsx")
 # Replace different MTAP entries with one, just as in 4.1_Add_GoT-XV_to_Seurat.R
 genotyping_tables.tib$Mutation <- gsub("MTAP.rearr.*", "MTAP.rearr", genotyping_tables.tib$Mutation)
 

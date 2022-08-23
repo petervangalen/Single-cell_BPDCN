@@ -7,7 +7,7 @@ library(readxl)
 library(randomForest)
 library(gplots)
 
-setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/3_RandomForest")
+setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/03_RandomForest")
 
 rm(list=ls())
 
@@ -18,11 +18,11 @@ cell_colors <- popcol.tib$hex[1:23]
 names(cell_colors) <- popcol.tib$pop[1:23]
 
 # Marker genes for the 23 cell types
-markerGenes.df <- read.table("../2_Annotate/markerGenes.txt", header = T)
+markerGenes.df <- read.table("../02_Annotate/markerGenes.txt", header = T)
 selected.genes <- unique( unlist(markerGenes.df, use.names = F) )
 
 # Load BM Data (Seurat object)
-bm <- readRDS("../2_Annotate/BM_Seurat_CellTypes.rds")
+bm <- readRDS("../02_Annotate/BM_Seurat_CellTypes.rds")
 
 
 # Load all gene expression data -------------------------------------------------------------------
