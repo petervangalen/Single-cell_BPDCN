@@ -86,7 +86,9 @@ write.table(bpdcn_sign, file = "bpdcn_sign.txt", quote = F, sep = "\t", row.name
 
 # Differentially expressed genes - my way ---------------------------------------------------------
 
-# The following yields very similar results; I prefer to use this fold change ranked gene list for GSEA.
+# The following yields very similar results; I prefer to use this fold change ranked gene list for GSEA, but
+# we ended up just using the section above for the paper
+
 # Extract gene expression matrices
 normal_mat <- GetAssayData(normal_pdcs_subset, slot = "data")
 malignant_mat <- GetAssayData(malignant_pdcs_subset, slot = "data")
@@ -119,8 +121,8 @@ diffgenes.tib %>%
 dev.off()
 
 # Save
-write.table(diffgenes.tib, file = "DiffGenes.txt", quote = F, sep = "\t", row.names = F)
-write.table(dplyr::select(diffgenes.tib, gene, logFC), file = "DiffGenes.rnk", quote = F, sep = "\t", row.names = F, col.names = F)
+#write.table(diffgenes.tib, file = "DiffGenes.txt", quote = F, sep = "\t", row.names = F)
+#write.table(dplyr::select(diffgenes.tib, gene, logFC), file = "DiffGenes.rnk", quote = F, sep = "\t", row.names = F, col.names = F)
 #bpdcn_sign <- diffgenes.tib %>% filter(pval < 1E-30, logFC > log(2)) %>% .$gene
 #write.table(bpdcn_sign, file = "bpdcn_sign.txt", quote = F, sep = "\t", row.names = F, col.names = F)
 

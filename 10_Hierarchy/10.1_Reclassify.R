@@ -9,8 +9,6 @@ library(randomForest)
 library(gplots)
 library(ggforce)
 library(cowplot)
-#library(ggrepel)
-#library(viridis)
 
 rm(list=ls())
 
@@ -20,14 +18,14 @@ setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/10
 # Functions & colors
 source("../Single-cell_BPDCN_Functions.R")
 popcol.tib <- read_excel("../Single-cell_BPDCN_colors.xlsx")
-cell_colors <- popcol.tib$hex[1:22]
-names(cell_colors) <- popcol.tib$pop[1:22]
-donor_colors <- popcol.tib$hex[24:41]
-names(donor_colors) <- popcol.tib$pop[24:41]
-group_colors <- popcol.tib$hex[42:44]
-names(group_colors) <- popcol.tib$pop[42:44]
-mut_colors <- popcol.tib$hex[45:47]
-names(mut_colors) <- popcol.tib$pop[45:47]
+cell_colors <- popcol.tib$hex[1:21]
+names(cell_colors) <- popcol.tib$pop[1:21]
+donor_colors <- popcol.tib$hex[23:40]
+names(donor_colors) <- popcol.tib$pop[23:40]
+group_colors <- popcol.tib$hex[41:43]
+names(group_colors) <- popcol.tib$pop[41:43]
+mut_colors <- popcol.tib$hex[44:46]
+names(mut_colors) <- popcol.tib$pop[44:46]
 
 # Load Seurat objects
 seurat_files <- list.files("../04_XV-seq", pattern = "*.rds", full.names = T)
@@ -83,7 +81,7 @@ metadata_tib$CellTypeRefined %>% table
 # Visualize BPDCN score, split by patient bone marrow involvement
 plot_tib <- metadata_tib[sample(nrow(metadata_tib)),]
 
-pdf(file = "10.1_Scores_by_BM_involvement.pdf", width = 6, height = 5)
+pdf(file = "10.1.1_Scores_by_BM_involvement.pdf", width = 6, height = 5)
 plot_tib %>%
   ggplot(aes(x = bm_involvement, y = bpdcn_score)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey") +
@@ -94,7 +92,7 @@ plot_tib %>%
 dev.off()
 
 # Visualize reclassification and mutations
-pdf(file = "10.2_Reclassify.pdf", width = 8, heigh = 8)
+pdf(file = "10.1.2_Reclassify.pdf", width = 8, heigh = 8)
 
 # Before reclassification
 p1 <- metadata_tib %>% arrange(p_call) %>%
@@ -133,7 +131,7 @@ for (g in genes) {
   metadata_tib[,g] <- GetAssayData(seu, slot = "data")[g,]
 }
 
-pdf(file = "10.3_MarkerGenes.pdf", width = 5, height = 4)
+pdf(file = "10.1.3_MarkerGenes.pdf", width = 5, height = 4)
 
 p1 <- metadata_tib %>% filter(CellType == "ProB") %>%
   ggplot(aes(x = bpdcn_score > 0.5, y = CD19)) +

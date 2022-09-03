@@ -8,7 +8,7 @@ library(data.table)
 library(ggrepel)
 library(ggforce)
 library(cowplot)
-library(viridis)
+#library(viridis)
 
 rm(list=ls())
 
@@ -18,14 +18,14 @@ setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/10
 # Functions & colors
 source("../Single-cell_BPDCN_Functions.R")
 popcol.tib <- read_excel("../Single-cell_BPDCN_colors.xlsx")
-cell_colors <- popcol.tib$hex[1:22]
-names(cell_colors) <- popcol.tib$pop[1:22]
-donor_colors <- popcol.tib$hex[24:41]
-names(donor_colors) <- popcol.tib$pop[24:41]
-group_colors <- popcol.tib$hex[42:44]
-names(group_colors) <- popcol.tib$pop[42:44]
-mut_colors <- popcol.tib$hex[45:47]
-names(mut_colors) <- popcol.tib$pop[45:47]
+cell_colors <- popcol.tib$hex[1:21]
+names(cell_colors) <- popcol.tib$pop[1:21]
+donor_colors <- popcol.tib$hex[23:40]
+names(donor_colors) <- popcol.tib$pop[23:40]
+group_colors <- popcol.tib$hex[41:43]
+names(group_colors) <- popcol.tib$pop[41:43]
+mut_colors <- popcol.tib$hex[44:46]
+names(mut_colors) <- popcol.tib$pop[44:46]
 
 # Load Seurat objects
 seurat_files <- list.files("../04_XV-seq", pattern = "*.rds", full.names = T)
@@ -36,9 +36,9 @@ seu$orig.ident2 <- ifelse(grepl("BM", seu$orig.ident), yes = cutf(seu$replicate,
 seu$CellType <- factor(seu$CellType, levels = levels(seu_ls[[1]]$CellType))
 
 # Define sample groups
-metadata_tib <- as_tibble(seu@meta.data, rownames = "cell")
-skin_only_samples <- unique(filter(metadata_tib, bm_involvement == "No")$orig.ident) %>% .[c(3,4,5,1,2)]
-bm_involvement_samples <- unique(filter(metadata_tib, bm_involvement == "Yes")$orig.ident) %>% .[c(6,1,2,3,4,5)]
+#metadata_tib <- as_tibble(seu@meta.data, rownames = "cell")
+#skin_only_samples <- unique(filter(metadata_tib, bm_involvement == "No")$orig.ident) %>% .[c(3,4,5,1,2)]
+#bm_involvement_samples <- unique(filter(metadata_tib, bm_involvement == "Yes")$orig.ident) %>% .[c(6,1,2,3,4,5)]
 
 # Load genotyping information
 genotyping_tables.tib <- read_excel("../04_XV-seq/XV-seq_overview.xlsx")
@@ -84,19 +84,7 @@ metadata_tib$CellType %>% table
 metadata_tib$CellTypeRefined %>% table
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-# ............................  -------------------------------------------------------------------
+# Hierarchy of pie charts -------------------------------------------------------------------------
 
 
 # Summarize to get fraction mutated cells ... Two Options
@@ -113,26 +101,32 @@ metadata_tib$CellTypeRefined %>% table
     mutate(mutated_cells = mutant/(wildtype+mutant))
 
 # Stacked bar plot
+pdf(paste0("10.2.1_Barplot_", pdf_name, ".pdf"))
 summary_tib %>% pivot_longer(cols = c(wildtype, mutant), names_to = "call", values_to = "count") %>%
   ggplot(aes(x = CellTypeRefined, y = count, fill = call)) +
-  geom_col(position = "stack")
+  geom_col(position = "stack") +
+  scale_fill_manual(values = mut_colors) +
+  ggtitle(paste("Number of cells with", tolower(pdf_name), "mutations")) +
+  theme_bw() +
+  theme(aspect.ratio = 2/3, axis.title.x = element_blank(), axis.ticks = element_line(color = "black"),
+        axis.text = element_text(color = "black"), axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))
+dev.off()
 
-# Pies 1
-summary_tib %>% pivot_longer(cols = c(wildtype, mutant), names_to = "call", values_to = "count") %>%
-  ggplot(aes(x = "", y = count, fill = call)) + 
-  geom_bar(stat = "identity") +
-  coord_polar("y") +
-  facet_wrap(~ CellTypeRefined)
-
-# Pies 2
+# Use facet wrap to plot pie charts
+pdf(paste0("10.2.2_PieArray_", pdf_name, ".pdf"))
 summary_tib %>% mutate(wildtype_cells = 1-mutated_cells) %>%
   pivot_longer(cols = c(mutated_cells, wildtype_cells), names_to = "call", values_to = "proportion") %>%
   ggplot(aes(x = "", y = proportion, fill = call)) + 
   geom_bar(stat = "identity") +
+  scale_fill_manual(values = c(wildtype_cells = "#32cd32", mutated_cells = "#dc143c")) +
   coord_polar("y") +
+  ggtitle(paste("Proportion of cells with", tolower(pdf_name), "mutations")) +
   facet_wrap(~ CellTypeRefined) +
-  theme(axis.title = element_blank(), axis.ticks = element_blank(),
-        axis.text = element_text(size = 6))
+  theme_bw() +
+  theme(axis.title = element_blank(), axis.ticks = element_blank(), axis.text = element_blank(),
+        panel.grid = element_blank())
+dev.off()
 
 # To customize size, make a list of ggplots
 pies_ls <- lapply(summary_tib$CellTypeRefined, function(x) {
@@ -141,17 +135,19 @@ pies_ls <- lapply(summary_tib$CellTypeRefined, function(x) {
     pivot_longer(cols = c(mutated_cells, wildtype_cells), names_to = "call", values_to = "proportion") %>%
     ggplot(aes(x = "", y = proportion, fill = call)) + 
     geom_bar(stat = "identity", show.legend = F) +
+    scale_fill_manual(values = c(wildtype_cells = "#32cd32", mutated_cells = "#dc143c")) +
     coord_polar("y") +
     ggtitle(x) +
     theme_bw() +
     theme(axis.title = element_blank(), axis.ticks = element_blank(),
           axis.text = element_blank(), panel.border = element_blank(),
-          plot.title = element_text(hjust = 0.5))
+          plot.title = element_text(hjust = 0.5),
+          panel.grid = element_blank())
     })
 names(pies_ls) <- summary_tib$CellTypeRefined
 
 # Save PDF
-pdf(file = paste0(pdf_name, ".pdf"), width = 20, height = 3)
+pdf(file = paste0("10.2.3_PieSizes_", pdf_name, ".pdf"), width = 20, height = 3)
 plot_grid(plotlist = pies_ls, nrow = 1, rel_widths = log(summary_tib$n))
 dev.off()
 

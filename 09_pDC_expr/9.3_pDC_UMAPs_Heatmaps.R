@@ -22,12 +22,12 @@ setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/09
 # Functions & colors
 source("../Single-cell_BPDCN_Functions.R")
 popcol.tib <- read_excel("../Single-cell_BPDCN_colors.xlsx")
-donor_colors <- popcol.tib$hex[24:41]
-names(donor_colors) <- popcol.tib$pop[24:41]
-group_colors <- popcol.tib$hex[42:44]
-names(group_colors) <- popcol.tib$pop[42:44]
-mut_colors <- popcol.tib$hex[45:47]
-names(mut_colors) <- popcol.tib$pop[45:47]
+donor_colors <- popcol.tib$hex[23:40]
+names(donor_colors) <- popcol.tib$pop[23:40]
+group_colors <- popcol.tib$hex[41:43]
+names(group_colors) <- popcol.tib$pop[41:43]
+mut_colors <- popcol.tib$hex[44:46]
+names(mut_colors) <- popcol.tib$pop[44:46]
 
 # Load pDC gene expression and metadata and signature
 pdcs <- readRDS("pdcs.rds")
@@ -38,15 +38,16 @@ genotyping_tables.tib <- read_excel("../04_XV-seq/XV-seq_overview.xlsx")
 # Replace different MTAP entries with one, just as in 4.1_Add_GoT-XV_to_Seurat.R
 genotyping_tables.tib$Mutation <- gsub("MTAP.rearr.*", "MTAP.rearr", genotyping_tables.tib$Mutation)
 
-
-# Make violin plots with mutation calls vs. BPDCN sign scores -------------------------------------
-
 # Add signatures score
 pdcs <- AddModuleScore(pdcs, features = list(bpdcn_sign), name = "bpdcn_sign_score")
 colnames(pdcs@meta.data) <- gsub("score1$", "score", colnames(pdcs@meta.data))
 
 # Extract metadata, look at BPDCN signature score vs. sample vs. mutations
 metadata_tib <- as_tibble(pdcs@meta.data, rownames = "cell")
+
+
+# Make violin plots with mutation calls vs. BPDCN sign scores -------------------------------------
+
 pdf("9.3.1_Non-involved_pDC_scores.pdf")
 metadata_tib %>% filter(bm_involvement != "Yes") %>%
   ggplot(aes(x = orig.ident, y = bpdcn_sign_score)) +
@@ -60,7 +61,7 @@ dev.off()
 # Wrangle
 Pt10_Muts <- filter(genotyping_tables.tib, Sample == "Pt10Dx") %>% arrange(`Founder or progression mutation`) %>% .$Mutation
 plot_tib <- metadata_tib %>% dplyr::select(orig.ident, all_of(Pt10_Muts), bpdcn_sign_score) %>% filter(orig.ident == "Pt10Dx") %>%
-  pivot_longer(cols = Pt10_Muts, names_to = "Mutation", values_to = "XVseq") %>%
+  pivot_longer(cols = all_of(Pt10_Muts), names_to = "Mutation", values_to = "XVseq") %>%
   mutate(XVseq = factor(XVseq, levels = c("no call", "wildtype", "mutant")),
          Mutation = factor(Mutation, levels = unique(Pt10_Muts)))
 plot_tib <- plot_tib %>% arrange(Mutation, XVseq) %>%
