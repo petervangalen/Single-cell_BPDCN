@@ -1,5 +1,5 @@
 # Peter van Galen, 220718
-# Reclassify all cells from BPDCN samples with an additional malignant BPDCN cell classs
+# Exclude cells that are suspect of misclassification
 
 library(tidyverse)
 library(Seurat)
@@ -51,32 +51,30 @@ metadata_tib <- as_tibble(seu@meta.data, rownames = "cell") %>%
 
 # Add genotyping information ----------------------------------------------------------------------
 
+# What are the UV-associated mutations?
+uv_muts <- filter(genotyping_tables.tib, `TC>TT (UV-associated)` == "Yes") %>% .$Mutation %>% unique
+
 # Add which cells have founder mutations
 f_muts <- filter(genotyping_tables.tib, `Founder or progression mutation` == "Founder") %>% .$Mutation
 metadata_tib$f_call <- ifelse(apply(dplyr::select(metadata_tib, all_of(f_muts)), 1, 
                                     function(x) sum(grepl("wildtype", x) > 0)), yes = "wildtype", no = "no call")
 metadata_tib$f_call <- ifelse(apply(dplyr::select(metadata_tib, all_of(f_muts)), 1,
                                     function(x) sum(grepl("mutant", x) > 0)), yes = "mutant", no = metadata_tib$f_call)
-metadata_tib$f_call <- factor(metadata_tib$f_call, levels = c("no call", "wildtype", "mutant"))
+metadata_tib$f_call <- ifelse(apply(dplyr::select(metadata_tib, all_of(intersect(f_muts, uv_muts))), 1,
+                                    function(x) sum(grepl("mutant", x) > 0)), yes = "mut_uv", no = metadata_tib$f_call)
+metadata_tib$f_call <- factor(metadata_tib$f_call, levels = c("no call", "wildtype", "mutant", "mut_uv"))
 # Add which cells have progession mutations
 p_muts <- filter(genotyping_tables.tib, `Founder or progression mutation` == "Progression") %>% .$Mutation
 metadata_tib$p_call <- ifelse(apply(dplyr::select(metadata_tib, all_of(p_muts)), 1, 
                                     function(x) sum(grepl("wildtype", x) > 0)), yes = "wildtype", no = "no call")
 metadata_tib$p_call <- ifelse(apply(dplyr::select(metadata_tib, all_of(p_muts)), 1,
                                     function(x) sum(grepl("mutant", x) > 0)), yes = "mutant", no = metadata_tib$p_call)
-metadata_tib$p_call <- factor(metadata_tib$p_call, levels = c("no call", "wildtype", "mutant"))
+metadata_tib$p_call <- ifelse(apply(dplyr::select(metadata_tib, all_of(intersect(p_muts, uv_muts))), 1,
+                                    function(x) sum(grepl("mutant", x) > 0)), yes = "mut_uv", no = metadata_tib$p_call)
+metadata_tib$p_call <- factor(metadata_tib$p_call, levels = c("no call", "wildtype", "mutant", "mut_uv"))
 
 
-# Add a new cell type (BPDCN) and reclassify cells accordingly ------------------------------------
-
-# Add new cell type: BPDCN
-metadata_tib <- metadata_tib %>% mutate(CellTypeRefined = case_when(
-  CellType == "pDC" & bm_involvement == "Yes" ~ "BPDCN",
-  bpdcn_score > 0.5 ~ "BPDCN",
-  TRUE ~ CellType)) %>%
-  mutate(CellTypeRefined = factor(CellTypeRefined, levels = c(levels(metadata_tib$CellType), "BPDCN")))
-metadata_tib$CellType %>% table
-metadata_tib$CellTypeRefined %>% table
+# Exclude non-pDCs with a high BPDCN score (likely misclassified BPDCN cells) ---------------------
 
 # Visualize BPDCN score, split by patient bone marrow involvement
 plot_tib <- metadata_tib[sample(nrow(metadata_tib)),]
@@ -91,38 +89,39 @@ plot_tib %>%
   theme(aspect.ratio = 1, panel.grid = element_blank(), axis.text = element_text(color = "black"))
 dev.off()
 
-# Visualize reclassification and mutations
-pdf(file = "10.1.2_Reclassify.pdf", width = 8, heigh = 8)
+# Exclude cells that are likely transformed BPDCN cells misclassified as something else
+metadata_tib$exclude <- ifelse(metadata_tib$CellType != "pDC" & metadata_tib$bpdcn_score > 0.5, yes = T, no = F)
 
-# Before reclassification
+# Visualize mutations and cells to exclude
+pdf(file = "10.1.2_Exclude.pdf", width = 12, height = 5)
+
 p1 <- metadata_tib %>% arrange(p_call) %>%
   ggplot(aes(x = CellType, y = bpdcn_score)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey") +
   geom_sina(aes(color = p_call, group = CellType), size = 0.3) +
-  scale_color_manual(values = mut_colors) +
+  scale_color_manual(values = c(mut_colors, mut_uv = "#daa520")) +
   theme_bw() +
-  ggtitle("Before reclassification") +
+  ggtitle("Colored by progression mutation status") +
   theme(aspect.ratio = 0.5, panel.grid = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
         axis.title.x = element_blank(), axis.text = element_text(color = "black"),
         plot.title = element_text(hjust = 0.5))
 
-# After reclassification
-p2 <- metadata_tib %>% arrange(p_call) %>%
-  ggplot(aes(x = CellTypeRefined, y = bpdcn_score)) +
+p2 <- metadata_tib %>%
+  ggplot(aes(x = CellType, y = bpdcn_score, color = exclude)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey") +
-  geom_sina(aes(color = p_call, group = CellTypeRefined), size = 0.3) +
-  scale_color_manual(values = mut_colors) +
+  geom_sina(aes(color = exclude, group = CellType), size = 0.3) +
+  scale_color_manual(values = c("#bdb76b", "#b22222")) +
   theme_bw() +
-  ggtitle("After reclassification") +
+  ggtitle("Cells to exclude (suspect misclassification)") +
   theme(aspect.ratio = 0.5, panel.grid = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
         axis.title.x = element_blank(), axis.text = element_text(color = "black"),
         plot.title = element_text(hjust = 0.5))
 
-plot_grid(p1, p2, ncol = 1)
+plot_grid(p1, p2)
 
 dev.off()
 
-# Check accuracy of reclassification by evaluating expression of canonical marker genes -----------
+# Check accuracy of exclusion by evaluating expression of canonical marker genes ------------------
 
 # Add gene epxression to metadata
 all(metadata_tib$cell == colnames(seu))
@@ -154,5 +153,17 @@ p2 <- metadata_tib %>% filter(CellType == "Plasma") %>%
 plot_grid(p1, p2)
 
 dev.off()
+
+# Save
+metadata_subset_tib <- filter(metadata_tib, exclude == F)
+metadata_subset_tib$exclude <- NULL
+metadata_subset_tib$CD19 <- NULL
+metadata_subset_tib$IL3RA <- NULL
+metadata_subset_tib$CD4 <- NULL
+metadata_subset_tib$SDC1 <- NULL
+write_tsv(metadata_subset_tib, file = "subset_metadata.txt")
+
+
+
 
 

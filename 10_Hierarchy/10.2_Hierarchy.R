@@ -8,7 +8,8 @@ library(data.table)
 library(ggrepel)
 library(ggforce)
 library(cowplot)
-#library(viridis)
+library(ggrepel)
+library(scatterpie)
 
 rm(list=ls())
 
@@ -27,129 +28,209 @@ names(group_colors) <- popcol.tib$pop[41:43]
 mut_colors <- popcol.tib$hex[44:46]
 names(mut_colors) <- popcol.tib$pop[44:46]
 
-# Load Seurat objects
-seurat_files <- list.files("../04_XV-seq", pattern = "*.rds", full.names = T)
-seu_ls <- lapply(seurat_files, function(x) readRDS(x))
-names(seu_ls) <- cutf(basename(seurat_files), d = "_")
-seu <- merge(seu_ls[[1]], seu_ls[2:length(seu_ls)])
-seu$orig.ident2 <- ifelse(grepl("BM", seu$orig.ident), yes = cutf(seu$replicate, d = "\\."), no = seu$orig.ident)
-seu$CellType <- factor(seu$CellType, levels = levels(seu_ls[[1]]$CellType))
-
-# Define sample groups
-#metadata_tib <- as_tibble(seu@meta.data, rownames = "cell")
-#skin_only_samples <- unique(filter(metadata_tib, bm_involvement == "No")$orig.ident) %>% .[c(3,4,5,1,2)]
-#bm_involvement_samples <- unique(filter(metadata_tib, bm_involvement == "Yes")$orig.ident) %>% .[c(6,1,2,3,4,5)]
+# Load data
+metadata_tib <- read_tsv("subset_metadata.txt")
+metadata_tib$CellType <- factor(metadata_tib$CellType, levels = names(cell_colors))
+metadata_tib$orig.ident <- factor(metadata_tib$orig.ident, levels = names(donor_colors)[c(1,8:18)])
 
 # Load genotyping information
 genotyping_tables.tib <- read_excel("../04_XV-seq/XV-seq_overview.xlsx")
 # Replace different MTAP entries with one, just as in 4.1_Add_GoT-XV_to_Seurat.R
 genotyping_tables.tib$Mutation <- gsub("MTAP.rearr.*", "MTAP.rearr", genotyping_tables.tib$Mutation)
-
-# Add malignant BPDCN cell module score, extract metadata
-bpdcn_sign <- read.table("../09_pDC_expr/bpdcn_sign.txt")[,1]
-seu <- AddModuleScore(seu, features = list(bpdcn_sign), name = "bpdcn_score")
-metadata_tib <- as_tibble(seu@meta.data, rownames = "cell") %>%
-  dplyr::select(cell, orig.ident, project.umap.x, project.umap.y, genotyping_tables.tib$Mutation,
-                CellType, bm_involvement, bpdcn_score1) %>%
-  rename(bpdcn_score = "bpdcn_score1")
-
-
-# Add genotyping information ----------------------------------------------------------------------
-
-# Add which cells have founder mutations
 f_muts <- filter(genotyping_tables.tib, `Founder or progression mutation` == "Founder") %>% .$Mutation
-metadata_tib$f_call <- ifelse(apply(dplyr::select(metadata_tib, all_of(f_muts)), 1, 
-                                    function(x) sum(grepl("wildtype", x) > 0)), yes = "wildtype", no = "no call")
-metadata_tib$f_call <- ifelse(apply(dplyr::select(metadata_tib, all_of(f_muts)), 1,
-                                    function(x) sum(grepl("mutant", x) > 0)), yes = "mutant", no = metadata_tib$f_call)
-metadata_tib$f_call <- factor(metadata_tib$f_call, levels = c("no call", "wildtype", "mutant"))
-# Add which cells have progession mutations
 p_muts <- filter(genotyping_tables.tib, `Founder or progression mutation` == "Progression") %>% .$Mutation
-metadata_tib$p_call <- ifelse(apply(dplyr::select(metadata_tib, all_of(p_muts)), 1, 
-                                    function(x) sum(grepl("wildtype", x) > 0)), yes = "wildtype", no = "no call")
-metadata_tib$p_call <- ifelse(apply(dplyr::select(metadata_tib, all_of(p_muts)), 1,
-                                    function(x) sum(grepl("mutant", x) > 0)), yes = "mutant", no = metadata_tib$p_call)
-metadata_tib$p_call <- factor(metadata_tib$p_call, levels = c("no call", "wildtype", "mutant"))
+uv_muts <- filter(genotyping_tables.tib, `TC>TT (UV-associated)` == "Yes") %>% .$Mutation %>% unique
 
-
-# Add a new cell type (BPDCN) and reclassify cells accordingly ------------------------------------
-
-# Add new cell type: BPDCN. The validity of these procedures is described in 10.1_Reclassify.R
-metadata_tib <- metadata_tib %>% mutate(CellTypeRefined = case_when(
-  CellType == "pDC" & bm_involvement == "Yes" ~ "BPDCN",
-  bpdcn_score > 0.5 ~ "BPDCN",
-  TRUE ~ CellType)) %>%
-  mutate(CellTypeRefined = factor(CellTypeRefined, levels = c(levels(metadata_tib$CellType), "BPDCN")))
-metadata_tib$CellType %>% table
-metadata_tib$CellTypeRefined %>% table
-
+# Coordinates for scatter pie charts
+celltype_coordinates <- tribble(~CellType, ~x, ~y,
+                                "HSPC", 4, 5,
+                                "EarlyEry", 3, 4.5,
+                                "LateEry", 2, 4,
+                                "GMP", 3.5, 4,
+                                "ProMono", 2.75, 3,
+                                "Mono", 2, 2,
+                                "ncMono", 3, 2,
+                                "cDC", 4, 2,
+                                "pDC", 5, 2,
+                                "ProB", 5, 4.25,
+                                "PreB", 5+1/3, 3.5,
+                                "B", 5+2/3, 2.75,
+                                "Plasma", 6, 2,
+                                "CD4Naive", 7, 4,
+                                "CD4Memory", 8, 4,
+                                "CD8Naive", 7, 3,
+                                "CD8Memory", 8, 3,
+                                "CD8TermExh", 9, 3,
+                                "GammaDeltaLike", 9, 4,
+                                "NKT", 7, 2,
+                                "NK", 8, 2)
 
 # Hierarchy of pie charts -------------------------------------------------------------------------
+
+# Try different things
+metadata_subset_tib <- metadata_tib
+metadata_subset_tib <- metadata_tib %>% filter(orig.ident %in% c("Pt1Dx", "Pt1Rem", "Pt10Dx", "Pt10Rel", "Pt12Dx", "Pt12Rel"))
+metadata_subset_tib <- metadata_tib %>% filter(orig.ident %in% c("Pt1Rem", "Pt10Dx", "Pt12Dx")) # Founder
+metadata_subset_tib <- metadata_tib %>% filter(orig.ident %in% c("Pt1Dx", "Pt10Rel", "Pt12Rel")) # Progression
 
 
 # Summarize to get fraction mutated cells ... Two Options
   # Option 1: Founder
   pdf_name <- "Founder"
-  summary_tib <- metadata_tib %>% filter(f_call != "no call") %>%
-    group_by(CellTypeRefined) %>% summarize(n = n(), wildtype = sum(f_call == "wildtype"), mutant = sum(f_call == "mutant")) %>%
-    mutate(mutated_cells = mutant/(wildtype+mutant))
+  summary_tib <- metadata_subset_tib %>% filter(f_call != "no call") %>% group_by(CellType) %>%
+    summarize(n = n(), wildtype = sum(f_call == "wildtype"), mutant = sum(f_call == "mutant"), mut_uv = sum(f_call == "mut_uv"))
 
   # Option 2: Progression
   pdf_name <- "Progression"
-  summary_tib <- metadata_tib %>% filter(p_call != "no call") %>%
-    group_by(CellTypeRefined) %>% summarize(n = n(), wildtype = sum(p_call == "wildtype"), mutant = sum(p_call == "mutant")) %>%
-    mutate(mutated_cells = mutant/(wildtype+mutant))
+  summary_tib <- metadata_subset_tib %>% filter(p_call != "no call") %>% group_by(CellType) %>%
+    summarize(n = n(), wildtype = sum(p_call == "wildtype"), mutant = sum(p_call == "mutant"), mut_uv = sum(p_call == "mut_uv"))
+
+# Visualize
+pdf(paste0("10.2.1_", pdf_name, "_Mutations_in_CellTypes.pdf"))
+
+# Merge data frames, plot scatterpie
+plot_tib <- summary_tib %>% left_join(celltype_coordinates) %>%
+  mutate(radius = log(n)/log(max(n))*0.5) %>% filter(n > 5)
+ggplot() +
+  geom_scatterpie(aes(x = x, y = y, r = radius), data = plot_tib, cols = c("wildtype", "mutant", "mut_uv"), color = NA) +
+  geom_scatterpie_legend(plot_tib$radius, x = 9, y = 1.5, n = 3) +
+  scale_fill_manual(values = c(wildtype = "#32cd32", mutant = "#dc143c", mut_uv = "#daa520")) +
+  geom_label(aes(x = x, y = y+radius+0.15, label = CellType), data = plot_tib, size = 3, label.padding = unit(0.1, "lines")) +
+  coord_cartesian(xlim = c(1,10), ylim = c(1,6)) +
+  ggtitle(label = paste0(pdf_name, " mutations")) +
+  theme_bw() +
+  theme(aspect.ratio = 6/10, panel.grid = element_blank(), axis.text = element_blank(),
+        axis.ticks = element_blank(), axis.title = element_blank())
 
 # Stacked bar plot
-pdf(paste0("10.2.1_Barplot_", pdf_name, ".pdf"))
-summary_tib %>% pivot_longer(cols = c(wildtype, mutant), names_to = "call", values_to = "count") %>%
-  ggplot(aes(x = CellTypeRefined, y = count, fill = call)) +
+summary_tib %>% pivot_longer(cols = c(wildtype, mutant, mut_uv), names_to = "call", values_to = "count") %>%
+  ggplot(aes(x = CellType, y = count, fill = call)) +
   geom_col(position = "stack") +
-  scale_fill_manual(values = mut_colors) +
+  scale_fill_manual(values = c(mut_colors, mut_uv = "#daa520")) +
   ggtitle(paste("Number of cells with", tolower(pdf_name), "mutations")) +
   theme_bw() +
   theme(aspect.ratio = 2/3, axis.title.x = element_blank(), axis.ticks = element_line(color = "black"),
         axis.text = element_text(color = "black"), axis.text.x = element_text(angle = 45, hjust = 1),
         panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))
+
 dev.off()
 
-# Use facet wrap to plot pie charts
-pdf(paste0("10.2.2_PieArray_", pdf_name, ".pdf"))
-summary_tib %>% mutate(wildtype_cells = 1-mutated_cells) %>%
-  pivot_longer(cols = c(mutated_cells, wildtype_cells), names_to = "call", values_to = "proportion") %>%
-  ggplot(aes(x = "", y = proportion, fill = call)) + 
-  geom_bar(stat = "identity") +
-  scale_fill_manual(values = c(wildtype_cells = "#32cd32", mutated_cells = "#dc143c")) +
-  coord_polar("y") +
-  ggtitle(paste("Proportion of cells with", tolower(pdf_name), "mutations")) +
-  facet_wrap(~ CellTypeRefined) +
+
+#x <- 26
+#y <- log(x)/20
+#y = 0.15
+#exp(y*20)
+
+
+# LOOK INTO ETV6
+
+etv6_tib <- metadata_subset_tib %>% filter(orig.ident == "Pt14Dx", ETV6.R369W != "no call") %>%
+  group_by(CellType) %>% summarize(wildtype = sum(ETV6.R369W == "wildtype"),
+                                   mutant = sum(ETV6.R369W == "mutant"))
+etv6_tib %>%
+  ggplot(aes(x = "", y = wildtype, fill = CellType)) +
+  geom_bar(stat="identity", width=1) +
+  scale_fill_manual(values = cell_colors) +
+  coord_polar("y")
+etv6_tib %>%
+  ggplot(aes(x = "", y = mutant, fill = CellType)) +
+  geom_bar(stat="identity", width=1) +
+  scale_fill_manual(values = cell_colors) +
+  coord_polar("y")
+
+seurat_files <- list.files("../04_XV-seq", pattern = "*.rds", full.names = T)
+seu_ls <- lapply(seurat_files, function(x) readRDS(x))
+
+pt14dx <- readRDS("../04_XV-seq/Pt14Dx_Seurat_Final.rds")
+
+# skipping harmony, cellc cyle regression
+#pt14dx <- CellCycleScoring(pdcs, s.features = cc.genes$s.genes, g2m.features = cc.genes$g2m.genes)
+pt14dx <- NormalizeData(pt14dx)
+pt14dx <- FindVariableFeatures(pt14dx)
+pt14dx <- ScaleData(pt14dx) #, vars.to.regress = c("S.Score", "G2M.Score"), features = rownames(pt14dx))
+pt14dx <- RunPCA(pt14dx, features = VariableFeatures(object = pt14dx))
+pt14dx <- RunUMAP(pt14dx, reduction = "pca", dims = 1:20)
+
+DimPlot(pt14dx, group.by = "CellType") + scale_color_manual(values = cell_colors) + theme(aspect.ratio = 1)
+DimPlot(pt14dx, group.by = "ETV6.R369W", pt.size = 0.5) + scale_color_manual(values = mut_colors) + theme(aspect.ratio = 1)
+
+pt14dx$UMAP_1 <- pt14dx@reductions$umap@cell.embeddings[,1]
+pt14dx$UMAP_2 <-pt14dx@reductions$umap@cell.embeddings[,2]
+
+pt14dx_metadata_tib <- as_tibble(pt14dx@meta.data, rownames = "cell")
+p1 <- pt14dx_metadata_tib %>%
+  ggplot(aes(x = UMAP_1, y = UMAP_2, color = CellType)) +
+  geom_point() +
+  scale_color_manual(values = cell_colors) +
   theme_bw() +
-  theme(axis.title = element_blank(), axis.ticks = element_blank(), axis.text = element_blank(),
-        panel.grid = element_blank())
+  theme(aspect.ratio = 1, panel.grid = element_blank())
+
+p2 <- pt14dx_metadata_tib %>% mutate(ETV6.R369W = factor(ETV6.R369W, levels = c("no call", "wildtype", "mutant"))) %>%
+  arrange(ETV6.R369W) %>%
+  ggplot(aes(x = UMAP_1, y = UMAP_2, color = ETV6.R369W)) +
+  geom_point() +
+  scale_color_manual(values = mut_colors) +
+  theme_bw() +
+  theme(aspect.ratio = 1, panel.grid = element_blank())
+
+pdf("new_umaps.pdf", height = 4.5, width = 15)
+plot_grid(p1, p2)
 dev.off()
 
-# To customize size, make a list of ggplots
-pies_ls <- lapply(summary_tib$CellTypeRefined, function(x) {
-  summary_tib %>% mutate(wildtype_cells = 1-mutated_cells) %>%
-    filter(CellTypeRefined == x) %>%
-    pivot_longer(cols = c(mutated_cells, wildtype_cells), names_to = "call", values_to = "proportion") %>%
-    ggplot(aes(x = "", y = proportion, fill = call)) + 
-    geom_bar(stat = "identity", show.legend = F) +
-    scale_fill_manual(values = c(wildtype_cells = "#32cd32", mutated_cells = "#dc143c")) +
-    coord_polar("y") +
-    ggtitle(x) +
-    theme_bw() +
-    theme(axis.title = element_blank(), axis.ticks = element_blank(),
-          axis.text = element_blank(), panel.border = element_blank(),
-          plot.title = element_text(hjust = 0.5),
-          panel.grid = element_blank())
-    })
-names(pies_ls) <- summary_tib$CellTypeRefined
 
-# Save PDF
-pdf(file = paste0("10.2.3_PieSizes_", pdf_name, ".pdf"), width = 20, height = 3)
-plot_grid(plotlist = pies_ls, nrow = 1, rel_widths = log(summary_tib$n))
-dev.off()
 
+
+# Same but split by patient -----------------------------------------------------------------------
+
+# This really only makes sense for patients with FOUNDER and PROGRESSION mutations
+patient_list <- list(Pt1 = c("Pt1Dx", "Pt1Rem"), Pt10 = c("Pt10Dx", "Pt10Rel"), Pt12 = c("Pt12Dx", "Pt12Rel"))
+
+for (p in names(patient_list)) {
+  #p <- "Pt10"
+  metadata_subset_tib <- metadata_tib %>% filter(orig.ident %in% patient_list[[p]])
   
+  for (pdf_name in c("Founder", "Progression")) {
+    #pdf_name <- "Progression"
 
+if (pdf_name == "Founder") {
+  summary_tib <- metadata_subset_tib %>% filter(f_call != "no call") %>% group_by(CellType) %>%
+    summarize(n = n(), wildtype = sum(f_call == "wildtype"), mutant = sum(f_call == "mutant"), mut_uv = sum(f_call == "mut_uv"))
+} else if (pdf_name == "Progression") {
+  summary_tib <- metadata_subset_tib %>% filter(p_call != "no call") %>% group_by(CellType) %>%
+    summarize(n = n(), wildtype = sum(p_call == "wildtype"), mutant = sum(p_call == "mutant"), mut_uv = sum(p_call == "mut_uv"))
+}
+    
+# Stacked bar plot
+pdf(paste0("split_by_patient/10.2.1_", p, "_", pdf_name, ".pdf"))
+#print(
+#  summary_tib %>% pivot_longer(cols = c(wildtype, mutant, uv_mut), names_to = "call", values_to = "count") %>%
+#    ggplot(aes(x = CellType, y = count, fill = call)) +
+#    geom_col(position = "stack") +
+#    scale_fill_manual(values = c(mut_colors, uv_mut = "#daa520")) +
+#    ggtitle(paste("Number of cells with", tolower(pdf_name), "mutations")) +
+#    theme_bw() +
+#    theme(aspect.ratio = 2/3, axis.title.x = element_blank(), axis.ticks = element_line(color = "black"),
+#          axis.text = element_text(color = "black"), axis.text.x = element_text(angle = 45, hjust = 1),
+#          panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))
+#)
+
+# Merge data frames
+plot_tib <- summary_tib %>% left_join(celltype_coordinates) %>%
+  mutate(radius = log(n)/log(max(n))*0.5)# %>% filter(n > 10)
+
+print( 
+  ggplot() +
+    geom_scatterpie(aes(x = x, y = y, r = radius), data = plot_tib, cols = c("wildtype", "mutant", "mut_uv"), color = NA) +
+    geom_scatterpie_legend(plot_tib$radius, x = 9, y = 1.5, n = 3) +
+    scale_fill_manual(values = c(wildtype = "#32cd32", mutant = "#dc143c", mut_uv = "#daa520")) +
+    geom_label(aes(x = x, y = y+radius+0.15, label = CellType), data = plot_tib, size = 3, label.padding = unit(0.1, "lines")) +
+    coord_cartesian(xlim = c(1,10), ylim = c(1,6)) +
+    ggtitle(label = paste0(pdf_name, " mutations")) +
+    theme_bw() +
+    theme(aspect.ratio = 6/10, panel.grid = element_blank(), axis.text = element_blank(),
+          axis.ticks = element_blank(), axis.title = element_blank())
+)
+dev.off()
+
+  }
+}
