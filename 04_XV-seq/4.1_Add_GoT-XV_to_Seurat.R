@@ -109,6 +109,7 @@ lapply(names(seu_anno.ls), function(x) {
 # Since these are the final Seurat objects I will use for subsequent analyses, I will similarly save the healthy controls
 bm_subset <- subset(bm, subset = CellType != "Doublets")
 bm_subset$CellType <- factor(bm_subset$CellType, levels = setdiff(levels(bm_subset$CellType), "Doublets"))
+bm_subset$Doublets <- NULL
 bm_subset$bm_involvement <- "HD"
 bm_subset@commands <- list()
 saveRDS(bm_subset, file = "BM_Seurat_Final.rds")
