@@ -15,6 +15,8 @@ setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/09
 # Functions & colors
 source("../Single-cell_BPDCN_Functions.R")
 popcol.tib <- read_excel("../Single-cell_BPDCN_colors.xlsx")
+group_colors <- popcol.tib$hex[41:43]
+names(group_colors) <- popcol.tib$pop[41:43]
 
 # Load pDC gene expression and metadata
 pdcs <- readRDS("pdcs.rds")
@@ -35,7 +37,7 @@ malignant_pdcs <- subset(pdcs, cells = colnames(subset(pdcs, bm_involvement == "
 as_tibble(normal_pdcs@meta.data) %>% dplyr::select(orig.ident, orig.ident2, bm_involvement) %>% group_by_all() %>% count()
 as_tibble(malignant_pdcs@meta.data) %>% dplyr::select(orig.ident, orig.ident2, bm_involvement) %>% group_by_all() %>% count()
 
-# Take at most 50 cells from each sample
+# Take at most 50 cells from each sample. This may yield an error if you don't use dplyr_1.0.99.9000
 normal_pdcs_subset_ids <- as_tibble(normal_pdcs@meta.data, rownames = "cell") %>% group_by(orig.ident2) %>% slice_sample(n = 50) %>% .$cell
 malignant_pdcs_subset_ids <- as_tibble(malignant_pdcs@meta.data, rownames = "cell") %>% group_by(orig.ident2) %>% slice_sample(n = 50) %>% .$cell
 normal_pdcs_subset <- subset(normal_pdcs, cells = normal_pdcs_subset_ids)
@@ -75,10 +77,20 @@ dev.off()
 # How does this compare to Chloe Villani's signature?
 pdcs <- AddModuleScore(pdcs, features = list(bpdcn_sign), name = "bpdcn_sign_score")
 colnames(pdcs@meta.data) <- gsub("score1$", "score", colnames(pdcs@meta.data))
-pdcs@meta.data %>% 
-  ggplot(aes(x = VILLANI_BPDCN_UP_Score, y = bpdcn_sign_score)) +
-  geom_point() +
-  theme(aspect.ratio = 1)
+pdf("9.2.2_Signature_correlation.pdf", width = 5, height = 5)
+print(
+pdcs@meta.data %>% arrange(fct_rev(bm_involvement)) %>%
+  ggplot(aes(x = VILLANI_BPDCN_UP_Score, y = bpdcn_sign_score, color = bm_involvement)) +
+  geom_point(size = 0.5) +
+  scale_color_manual(values = group_colors) +
+  theme_bw() +
+  annotate("text", x = -0.5, y = 1, color = "black",
+           label = paste0("r = ", round(cor(pdcs$VILLANI_BPDCN_UP_Score, pdcs$bpdcn_sign_score), 2))) +
+  theme(aspect.ratio = 1,
+        panel.grid = element_blank(),
+        axis.text = element_text(color = "black"))
+)
+dev.off()
 
 # Save
 write.table(bpdcn_sign, file = "bpdcn_sign.txt", quote = F, sep = "\t", row.names = F, col.names = F)
@@ -106,7 +118,7 @@ diffgenes.tib$pval <- p.adjust(sapply(diffgenes.tib$gene, function(z)
 # Order, check & save
 diffgenes.tib <- arrange(diffgenes.tib, desc(logFC))
 
-pdf("9.2.2_Volcano_MyWay.pdf")
+pdf("9.2.3_Volcano_MyWay.pdf")
 diffgenes.tib %>%
   ggplot(aes(x = logFC, y = -log10(pval), color = gene %in% bpdcn_sign)) +
   geom_point() +

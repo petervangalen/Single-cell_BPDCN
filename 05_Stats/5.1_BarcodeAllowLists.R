@@ -13,9 +13,12 @@ source("../Single-cell_BPDCN_Functions.R")
 
 # Load list of Seurat files
 seurat_files <- list.files("../04_XV-seq", pattern = "*.rds", full.names = T)
-seu.ls <- lapply(seurat_files, function(x) readRDS(x))
-names(seu.ls) <- cutf(basename(seurat_files), d = "_")
-bm <- seu.ls[[1]]
+seu_ls <- lapply(seurat_files, function(x) readRDS(x))
+names(seu_ls) <- cutf(basename(seurat_files), d = "_")
+seu <- merge(seu_ls[[1]], seu_ls[2:length(seu_ls)])
+seu$CellType <- factor(seu$CellType, levels = levels(seu_ls[[1]]$CellType))
+bm <- seu_ls[[1]]
+
 
 # Save cell id and CellType for Vikram and Subin
 as_tibble(bm@meta.data, rownames = "Cell") %>% filter(tech == "TenX") %>%
@@ -25,9 +28,8 @@ as_tibble(bm@meta.data, rownames = "Cell") %>% filter(tech == "TenX") %>%
   write_tsv("HealthyDonor_CellTypes.txt")
   
 
-
 # Write allowlists for BPDCN samples
-seu_bpdcn.ls <- seu.ls[-1]
+seu_bpdcn.ls <- seu_ls[-1]
 for (n in names(seu_bpdcn.ls)) {
   seu <- seu_bpdcn.ls[[n]]
   allowlist.df <- data.frame(CellBarcode = cutf(colnames(seu), d = "-"))
@@ -35,7 +37,7 @@ for (n in names(seu_bpdcn.ls)) {
 }
 
 # For bone marrow, do the same, and also make a dataframe with 100 randomly chosen good cells (for another project)
-#bm <- seu.ls[["BM"]]
+#bm <- seu_ls[["BM"]]
 
 # Also make a file with 100 random cells
 #good_cells.df <- data.frame(matrix(ncol = length(unique(bm$replicate)), nrow = 100))

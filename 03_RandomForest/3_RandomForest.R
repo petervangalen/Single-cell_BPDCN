@@ -14,8 +14,8 @@ rm(list=ls())
 # Functions & colors
 source("../Single-cell_BPDCN_Functions.R")
 popcol.tib <- read_excel("../Single-cell_BPDCN_colors.xlsx")
-cell_colors <- popcol.tib$hex[1:23]
-names(cell_colors) <- popcol.tib$pop[1:23]
+cell_colors <- popcol.tib$hex[1:22]
+names(cell_colors) <- popcol.tib$pop[1:22]
 
 # Marker genes for the 23 cell types
 markerGenes.df <- read.table("../02_Annotate/markerGenes.txt", header = T)
@@ -234,6 +234,9 @@ axis(side = 1, at = seq(1,ncol(PlotFreqNorm.mat))*1.2-0.5, labels = colnames(Plo
 legend(x = ncol(PlotFreqNorm.mat)*1.2+0.5, y = 100, legend = rownames(PlotFreqNorm.mat), fill = cell_colors[rownames(PlotFreqNorm.mat)], bty = "n", border = NA)
 
 dev.off()
+
+# For 11.2_Sina_or_barplots.R, save pDC prediction scores
+saveRDS(predictions.mat.ls, "Prediction_scores.rds")
 
 
 # Project cell types & save -----------------------------------------------------------------------

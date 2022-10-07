@@ -30,11 +30,6 @@ names(seu_ls) <- cutf(basename(seurat_files), d = "_")
 seu <- merge(seu_ls[[1]], seu_ls[2:length(seu_ls)])
 seu$orig.ident2 <- ifelse(grepl("BM", seu$orig.ident), yes = cutf(seu$replicate, d = "\\."), no = seu$orig.ident)
 
-# Define sample groups
-metadata_tib <- as_tibble(seu@meta.data, rownames = "cell")
-skin_only_samples <- unique(filter(metadata_tib, bm_involvement == "No")$orig.ident) %>% .[c(3,4,5,1,2)]
-bm_involvement_samples <- unique(filter(metadata_tib, bm_involvement == "Yes")$orig.ident) %>% .[c(6,1,2,3,4,5)]
-
 # Load genotyping information
 genotyping_tables.tib <- read_excel("../04_XV-seq/XV-seq_overview.xlsx")
 # Replace different MTAP entries with one, just as in 4.1_Add_GoT-XV_to_Seurat.R
@@ -43,41 +38,32 @@ genotyping_tables.tib$Mutation <- gsub("MTAP.rearr.*", "MTAP.rearr", genotyping_
 
 # pDC proportion ----------------------------------------------------------------------------------
 
-# Calculate proportion of pDCs over HSPC+Erythroid+Myeloid cells
-celltypes.ch <- c("pDC", "cDC", "ncMono", "Mono", "ProMono", "Prog", "HSC", "EarlyE", "LateE")
-seu_split_ls <- SplitObject(seu, split = "orig.ident2")
-pdcs_num <- unlist( lapply(seu_split_ls, function(x)
-  ncol(subset(x, CellType == "pDC")) / ncol(subset(x, CellType %in% celltypes.ch))) )
-# Make tibble with results
-pdc_proportion_tib <- tibble(Sample = names(pdcs_num), pDCs = pdcs_num) %>%
-  mutate(Group = case_when(grepl("^BM", Sample) ~ "healthy_bm",
-                           Sample %in% skin_only_samples ~ "skin_only",
-                           Sample %in% bm_involvement_samples ~ "bm_involvement")) %>%
-  mutate(Group = factor(Group, levels = c("healthy_bm", "skin_only", "bm_involvement")))
+# Calculate proportion of pDCs
+prop_tib <- as_tibble(seu@meta.data) %>% group_by(orig.ident2, bm_involvement) %>%
+  summarize(n = n(), pDC_percent = sum(CellType == "pDC")/n()*100)
 
 # Plot
-pdf("9.1.1_pDC_Proportion.pdf", width = 6, height = 6)
-pdc_proportion_tib %>%
-  ggplot(aes(x = Group, y = pDCs, label = Sample, color = Sample)) +
+pdf("9.1.1_pDC_percent.pdf", width = 3, height = 5)
+prop_tib %>%
+  ggplot(aes(x = bm_involvement, y = pDC_percent, label = orig.ident2, color = orig.ident2)) +
   geom_point(size = 2) +
-  geom_label_repel(max.overlaps = 15, show.legend  = F) +
-  scale_color_manual(values = donor_colors, na.value = donor_colors["BM"]) +
-  ylab("pDCs (% of HSPC+erythroid+myeloid)") +
+  scale_color_manual(values = donor_colors) +
   theme_bw() +
-  theme(aspect.ratio = 1,
-        axis.title.x = element_blank(),
+  theme(aspect.ratio = 3,
         axis.title.y = element_text(size = 10, color = "black"),
         axis.text = element_text(size = 10, color = "black"),
         panel.grid = element_blank())
 dev.off()
 
 # The proportion of pDCs is higher in patients with involvement
-t.test(filter(pdc_proportion_tib, Group == "healthy_bm")$pDCs,
-       filter(pdc_proportion_tib, Group == "skin_only")$pDCs, var.equal = T)$p.value
-t.test(filter(pdc_proportion_tib, Group == "healthy_bm")$pDCs,
-       filter(pdc_proportion_tib, Group == "bm_involvement")$pDCs, var.equal = T)$p.value
-t.test(filter(pdc_proportion_tib, Group == "skin_only")$pDCs,
-       filter(pdc_proportion_tib, Group == "bm_involvement")$pDCs, var.equal = T)$p.value
+t.test(filter(prop_tib, bm_involvement == "HD")$pDC_percent,
+       filter(prop_tib, bm_involvement == "No")$pDC_percent, var.equal = T)$p.value
+t.test(filter(prop_tib, bm_involvement == "HD")$pDC_percent,
+       filter(prop_tib, bm_involvement == "Yes")$pDC_percent, var.equal = T)$p.value # manuscript text
+t.test(filter(prop_tib, bm_involvement == "No")$pDC_percent,
+       filter(prop_tib, bm_involvement == "Yes")$pDC_percent, var.equal = T)$p.value
+t.test(filter(prop_tib, bm_involvement %in% c("HD", "No"))$pDC_percent,
+       filter(prop_tib, bm_involvement == "Yes")$pDC_percent, var.equal = T)$p.value
 
 
 # Check for technical artifacts -------------------------------------------------------------------
@@ -102,7 +88,7 @@ pdcs <- subset(pdcs, features = setdiff(rownames(pdcs), rp.ch))
 # pDC UMAP ----------------------------------------------------------------------------------------
 
 # Calculate UMAP coordinates for pDCs See 1_Seurat_Harmony for more information.
-pdcs <- CellCycleScoring(pdcs, s.features = cc.genes$s.genes, g2m.features = cc.genes$g2m.genes)
+pdcs <- CellCycleScoring(pdcs, s.features = cc.genes$s.genes, g2m.features = cc.genes$g2m.genes) # this takes a few minutes
 pdcs <- NormalizeData(pdcs)
 pdcs <- FindVariableFeatures(pdcs)
 pdcs <- ScaleData(pdcs, vars.to.regress = c("S.Score", "G2M.Score"), features = rownames(pdcs))
