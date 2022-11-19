@@ -235,7 +235,7 @@ legend(x = ncol(PlotFreqNorm.mat)*1.2+0.5, y = 100, legend = rownames(PlotFreqNo
 
 dev.off()
 
-# For 11.2_Sina_or_barplots.R, save pDC prediction scores
+# For 11.2_Sina_or_barplots.R, save pDC prediction scores. These include doublets
 saveRDS(predictions.mat.ls, "Prediction_scores.rds")
 
 

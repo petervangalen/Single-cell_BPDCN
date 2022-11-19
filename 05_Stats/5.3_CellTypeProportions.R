@@ -50,6 +50,16 @@ legend(x = ncol(freq_norm)*1.2+0.5, y = 100, legend = rownames(freq_norm), fill 
 dev.off()
 
 
+
+
+
+
+
+
+
+### The following scripts did not make it into the paper ###
+
+
 # Plot fold change and P values -------------------------------------------------------------------
 
 # Test if there are significant differences in cell type frequencies between the groups
@@ -60,13 +70,12 @@ bm_involvement_sign_tib <- tibble(CellType = rownames(freq_norm),
   FC = apply(freq_norm[,bm_involvement_samples], 1, mean) / apply(freq_norm[,bm_samples], 1, mean),
   P = apply(freq_norm, 1, function(x) t.test(x[bm_samples],x[bm_involvement_samples])$p.value))
 
-pdf("5.3_Cell_type_proportion_fold_change.pdf")
-
-rbind(mutate(skin_only_sign_tib, donor_group = "skin_only"), mutate(bm_involvement_sign_tib, donor_group = "bm_involvement")) %>%
+#pdf("5.3_Cell_type_proportion_fold_change.pdf")
+rbind(mutate(skin_only_sign_tib, donor_group = "No"), mutate(bm_involvement_sign_tib, donor_group = "Yes")) %>%
   mutate(CellType = factor(CellType, levels = levels(seu_ls$BM$CellType))) %>%
   ggplot(aes(x = CellType, y = FC, fill = donor_group, color = P < 0.05)) +
   geom_hline(yintercept = 1, linetype="dashed", color = "grey") +
-  scale_fill_manual(values = group_colors) +
+  scale_fill_manual(values = group_colors[2:3]) +
   geom_point(pch = 21, alpha = 0.5, size = 5, stroke = 1) +
   scale_color_manual(values = c("white", "black")) +
   ylab("Fold change relative to healthy controls") +
@@ -74,8 +83,7 @@ rbind(mutate(skin_only_sign_tib, donor_group = "skin_only"), mutate(bm_involveme
   theme(aspect.ratio = 0.4, axis.line = element_line(color = "black"), axis.ticks = element_line(color = "black"),
         axis.text = element_text(color = "black"),
         axis.text.x = element_text(angle = 45, hjust = 1), panel.grid = element_blank())
-
-dev.off()
+#dev.off()
 
 
 # Test for Y chromosome expression ----------------------------------------------------------------

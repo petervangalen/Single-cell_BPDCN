@@ -16,10 +16,10 @@ rm(list=ls())
 # Functions & colors
 source("../Single-cell_BPDCN_Functions.R")
 popcol.tib <- read_excel("../Single-cell_BPDCN_colors.xlsx")
-cell_colors <- popcol.tib$hex[1:22]
-names(cell_colors) <- popcol.tib$pop[1:22]
-mut_colors <- popcol.tib$hex[45:47]
-names(mut_colors) <- popcol.tib$pop[45:47]
+cell_colors <- popcol.tib$hex[1:21]
+names(cell_colors) <- popcol.tib$pop[1:21]
+mut_colors <- popcol.tib$hex[44:46]
+names(mut_colors) <- popcol.tib$pop[44:46]
 
 # Load Seurat objects
 seurat_files <- list.files("../04_XV-seq", pattern = "*.rds", full.names = T)
@@ -45,6 +45,9 @@ meltbins$Var2 <- rep(bins$x2, each = n)
 muts <- genotyping_tables.tib$Mutation
 pdf_name <- "all_mutations"
 # OR
+muts <- filter(genotyping_tables.tib, `Founder or progression mutation` == "Founder") %>% .$Mutation
+pdf_name <- "founder_mutations"
+# OR
 muts <- filter(genotyping_tables.tib, `Founder or progression mutation` == "Progression") %>% .$Mutation
 pdf_name <- "progression_mutations"
 
@@ -65,8 +68,6 @@ no_call <- metadata_tib %>% filter(call == "no call")
 called <- metadata_tib %>% filter(call != "no call")
 called <- called %>% mutate(my_order = sample(1:nrow(called))) %>% arrange(my_order) %>% mutate(my_order = NULL)
 metadata_order_tib <- rbind(no_call, called)
-
-pdf(paste0("6.2_XV-seq_", pdf_name, ".pdf"), width = 12, height = 5)
 
 # Plot all cells
 p1 <- ggplot() +
@@ -109,14 +110,12 @@ p3 <- ggplot() +
         panel.grid.minor = element_blank(), panel.background = element_blank(),
         plot.title = element_text(hjust = 0.5, size = 14))
 
+pdf(paste0("6.2_XV-seq_", pdf_name, ".pdf"), width = 12, height = 5)
 grid.arrange(p1, p2, p3, ncol = 3)
-
 dev.off()
 
-# For the text: how many mutated and wild-type cells in skin-only patients? (use for all mutations)
+# For the text: how many mutated and wild-type cells in skin-only patients? (use for pdf_name founder mutations)
 metadata_tib %>% filter(bm_involvement == "No") %>% .$call %>% table
-# How many mutated and wild-type cells in bm involvement patients? (use for progression mutations)
-metadata_tib %>% filter(bm_involvement == "Yes") %>% .$call %>% table
 
 
 # Overall heatmap of mutation ratio ---------------------------------------------------------------
@@ -131,9 +130,6 @@ metadata_tib$lineage[metadata_tib$CellType %in% c("ProB", "PreB", "B", "Plasma")
 metadata_tib$lineage[metadata_tib$CellType %in% c("CD4Naive", "CD4Memory", "CD8Naive", "CD8Memory", "CD8TermExh", "GammaDeltaLike")] <- "T.cells"
 metadata_tib$lineage[metadata_tib$CellType %in% c("NKT", "NK")] <- "NK"
 metadata_tib <- metadata_tib %>% mutate(lineage = factor(lineage, levels = c("HSPC", "Ery", "Myeloid", "NK", "B.cells", "T.cells")))
-
-# Visualize
-pdf(paste0("6.2_Mutation_ratio_heatmap_", pdf_name, ".pdf"), width = 10, height = 2)
 
 # All: Make table, then visualize
 count_tib <- metadata_tib %>% group_by(lineage, call) %>% count()
@@ -168,7 +164,7 @@ p2 <- count2_tib %>%
 # BM involvement: Make table, then visualize
 count_tib <- metadata_tib %>% filter(bm_involvement == "Yes")  %>% group_by(lineage, call) %>% count()
 count2_tib <- count_tib %>% pivot_wider(id_cols = lineage, names_from = call, values_from = n) %>%
-  mutate(total = sum(mutant, wildtype))
+  mutate(total = sum(na.omit(c(mutant, wildtype))))
 p3 <- count2_tib %>%
   ggplot(aes(x = lineage, y = 1, fill = mutant/total, label = paste0(mutant, "\n", total))) +
   geom_tile() +
@@ -180,12 +176,14 @@ p3 <- count2_tib %>%
         panel.background = element_rect(colour = "black", size=1)) +
   scale_fill_gradient(low = "white", high = "#4B0092", limits = c(0, 1))
 
+# Visualize
+pdf(paste0("6.2_Mutation_ratio_heatmap_", pdf_name, ".pdf"), width = 10, height = 2)
 grid.arrange(p1, p2, p3, ncol = 3)
-
 dev.off()
 
 # Chi square test
-count_mat <- count2_tib %>% mutate(lineage_broad = ifelse(lineage %in% c("HSPC", "Ery", "Myeloid"), yes = "myeloerythroid", no = "lymphoid")) %>%
+count_mat <- count2_tib %>% mutate(mutant = replace_na(mutant, 0)) %>%
+  mutate(lineage_broad = ifelse(lineage %in% c("HSPC", "Ery", "Myeloid"), yes = "myeloerythroid", no = "lymphoid")) %>%
   group_by(lineage_broad) %>% summarize(wt = sum(wildtype), mut = sum(mutant)) %>% data.frame(row.names = 1) %>% t()
 
 chisq.test(count_mat)

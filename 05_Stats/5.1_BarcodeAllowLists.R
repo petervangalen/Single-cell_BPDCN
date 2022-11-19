@@ -21,11 +21,11 @@ bm <- seu_ls[[1]]
 
 
 # Save cell id and CellType for Vikram and Subin
-as_tibble(bm@meta.data, rownames = "Cell") %>% filter(tech == "TenX") %>%
-  mutate(Sample = gsub("\\.", "-", replicate)) %>%
-  mutate(Cell = cutf(Cell, d = "-")) %>%
-  select(Sample, Cell, CellType) %>%
-  write_tsv("HealthyDonor_CellTypes.txt")
+#as_tibble(bm@meta.data, rownames = "Cell") %>% filter(tech == "TenX") %>%
+#  mutate(Sample = gsub("\\.", "-", replicate)) %>%
+#  mutate(Cell = cutf(Cell, d = "-")) %>%
+#  select(Sample, Cell, CellType) %>%
+#  write_tsv("HealthyDonor_CellTypes.txt")
   
 
 # Write allowlists for BPDCN samples
@@ -33,7 +33,7 @@ seu_bpdcn.ls <- seu_ls[-1]
 for (n in names(seu_bpdcn.ls)) {
   seu <- seu_bpdcn.ls[[n]]
   allowlist.df <- data.frame(CellBarcode = cutf(colnames(seu), d = "-"))
-  write.table(allowlist.df, file = paste0(n, "_CellBarcode_Allowlist.txt"), row.names = F, col.names = F, quote = F)
+  write.table(allowlist.df, file = paste0("5.1_CB-AllowLists/", n, "_CellBarcode_Allowlist.txt"), row.names = F, col.names = F, quote = F)
 }
 
 # For bone marrow, do the same, and also make a dataframe with 100 randomly chosen good cells (for another project)
