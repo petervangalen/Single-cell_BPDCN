@@ -22,12 +22,23 @@ names(seu_bpdcn.ls) <- gsub("_Seurat_Final.rds", "", cutf(seurat_files, d = "/",
 
 # Generate data frame for genotyping results
 genotyping_tables.tib <- read_excel("../04_XV-seq/XV-seq_overview.xlsx")
+
+# Determine the number of mutated and wildtype UMIs -----------------------------------------------
+
+# Then, add the information to the Excel file "XV-seq_overview.xlsx"
+summ_tables_ls <- lapply(genotyping_tables.tib$FilteredCells, read_tsv)
+genotyping_tables.tib$wtUMIs <- unlist(lapply(summ_tables_ls, function(x) sum(x$"wtUMIs")))
+genotyping_tables.tib$mutUMIs <- unlist(lapply(summ_tables_ls, function(x) sum(x$"mutUMIs")))
+write_tsv(genotyping_tables.tib[,c("wtUMIs", "mutUMIs")], file = "4.2_UMI_counts.txt")
+
+
+# Integrate mutation data, quantify genotyping efficiency and mutated cell fraction ----------------
+
 # Replace different MTAP entries with one, just as in 4.1_Add_GoT-XV_to_Seurat.R
 genotyping_tables.tib$Mutation <- gsub("MTAP.rearr.*", "MTAP.rearr", genotyping_tables.tib$Mutation)
 genotyping_tables.tib <- genotyping_tables.tib %>% select(Sample, Mutation) %>% unique
 
-# Integrate mutation data, quantify genotyping efficiency and mutated cell fraction ----------------
-
+# Set up new columns
 genotyping_tables.tib$Efficiency <- NA
 genotyping_tables.tib$GenotypedCells <- NA
 genotyping_tables.tib$MutCellFraction <- NA
@@ -56,4 +67,4 @@ for (n in 1:nrow(genotyping_tables.tib)) {
 
 write_tsv(genotyping_tables.tib, file = "4.2_Genotyping_stats.txt")
 
-# Then add the information to the Excel file. Plots are generated in 5_Stats/5.4_GoT_XV-seq.R
+# Then add the information to the Excel file "XV-seq_overview.xlsx". Plots are generated in 5_Stats/5.4_GoT_XV-seq.R

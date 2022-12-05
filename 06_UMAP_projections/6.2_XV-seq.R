@@ -82,8 +82,13 @@ p1 <- ggplot() +
         panel.grid.minor = element_blank(), panel.background = element_blank(),
         plot.title = element_text(hjust = 0.5, size = 14))
 
-# Plot skin-only patients
+# Plot skin-only patients (aka no bone marrow involvement)
 metadata_order_skin_only <- metadata_order_tib %>% filter(bm_involvement == "No")
+# This table makes it easy to see which lineages contained cells with founder mutations
+metadata_order_skin_only %>% group_by(orig.ident, call, CellType) %>% count %>%
+  mutate(orig.ident = factor(orig.ident, levels = c("Pt1Rem", "Pt5Dx", "Pt9Dx", "Pt10Dx", "Pt12Dx")),
+         CellType = factor(CellType, levels = levels(seu.ls[[1]]$CellType))) %>% arrange(call, CellType) %>%
+  pivot_wider(names_from = CellType, values_from = n) #%>% view
 p2 <- ggplot() +
   geom_contour(data = meltbins, mapping = aes(x = Var1, y = Var2, z = value, color = after_stat(level)), bins = 10, size = 1) +
   scale_color_gradient2(low = "grey", high = "black", guide="none") +

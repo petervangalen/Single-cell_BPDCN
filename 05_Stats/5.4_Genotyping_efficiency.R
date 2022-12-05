@@ -4,6 +4,8 @@
 library(tidyverse)
 library(Seurat)
 library(readxl)
+library(ggrepel)
+library(cowplot)
 
 setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/05_Stats")
 
@@ -43,8 +45,8 @@ as_tibble(subset(seu, orig.ident %in% c("Pt10Dx", "Pt10Rel"))@meta.data) %>% .$`
 f_mut <- filter(genotyping_tables.tib, `Founder or progression mutation` == "Founder") %>% .$Mutation %>% unique
 uninvolved_tib <- as_tibble(seu@meta.data) %>% filter(bm_involvement == "No")
 uninvolved_tib$orig.ident %>% unique
-f_summary <- tibble(n_mut =  select(uninvolved_tib, f_mut) %>% apply(., 1, function(x) sum(grepl("mutant", x))),
-                    n_wt = select(uninvolved_tib, f_mut) %>% apply(., 1, function(x) sum(grepl("wildtype", x))))
+f_summary <- tibble(n_mut = dplyr::select(uninvolved_tib, f_mut) %>% apply(., 1, function(x) sum(grepl("mutant", x))),
+                    n_wt = dplyr::select(uninvolved_tib, f_mut) %>% apply(., 1, function(x) sum(grepl("wildtype", x))))
 f_summary %>% filter(n_mut == 0, n_wt > 0)
 f_summary %>% filter(n_mut > 0)
 
@@ -65,12 +67,116 @@ dev.off()
 
 # Expression vs. genotyping efficiency ------------------------------------------------------------
 
+# Make a new table to assess genotyping efficiency vs. gene expression levels
+genotyping_vs_expr_tib <- genotyping_tables.tib %>% dplyr::select(Sample, Mutation, `Genotyping efficiency (%)`) %>%
+  mutate(gene = cutf(Mutation, d = "\\."), .before = 3) %>% na.omit %>%
+  filter(gene %in% rownames(seu)) %>% mutate(Expression = NA)
+
+# Fill in the expression 
+for (n in 1:nrow(genotyping_vs_expr_tib)) {
+  #n <- 1
+  Sample <- genotyping_vs_expr_tib$Sample[n]
+  gene <- genotyping_vs_expr_tib$gene[n]
+  genotyping_vs_expr_tib$Expression[n] <- mean(GetAssayData(seu_ls[[Sample]])[gene,])
+}
+
+pdf(file = "5.4.2_Genotyping-vs-Expr.pdf", height = 4, width = 5)
+genotyping_vs_expr_tib %>%
+  ggplot(aes(x = Expression, y = `Genotyping efficiency (%)`, color = Sample, label = Mutation)) +
+  geom_point() +
+  geom_text_repel(show.legend = F) +
+  scale_color_manual(values = donor_colors[unique(genotyping_vs_expr_tib$Sample)]) +
+  annotate(geom = "text", x = 0.3, y = 100,
+           label = paste("r = ", round(cor(genotyping_vs_expr_tib$Expression, genotyping_vs_expr_tib$`Genotyping efficiency (%)`), 2))) +
+  theme_bw() +
+  theme(aspect.ratio = 1,
+        panel.grid = element_blank(),
+        axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+dev.off()
+
+
+# Mutated cell fraction vs. VAF from bulk sequencing ----------------------------------------------
+
+# Wrangle RHP targeted sequencing, WES/WGS columns, add mutant UMI fraction
+cor_tib <- genotyping_tables.tib %>%
+  mutate(`Bulk VAF (RHP)` = as.numeric(`Bulk VAF (RHP)`)) %>% 
+  mutate(`Bulk VAF (WES/WGS)` = as.numeric(gsub("nd", "0", `Bulk VAF (WES/WGS)`))) %>%
+  mutate(`Mutant UMI fraction (%)` = `Number of mutant UMIs` / (`Number of wildtype UMIs`+`Number of mutant UMIs`) * 100) %>%
+  dplyr::select(Sample, Mutation, `Bulk VAF (RHP)`, `Bulk VAF (WES/WGS)`, `Mutant cell fraction (%)`, `Mutant UMI fraction (%)`)
+
+# Generate four plots
+plot1_tib <- cor_tib %>% filter(! is.na(`Bulk VAF (RHP)`))
+p1 <- plot1_tib %>% 
+  ggplot(aes(x = `Mutant cell fraction (%)`, y = `Bulk VAF (RHP)`, color = Sample, label = Mutation)) +
+  geom_point() +
+  geom_text_repel(show.legend = F, size = 2, max.overlaps = 10) +
+  scale_color_manual(values = donor_colors[unique(plot1_tib$Sample)]) +
+  coord_cartesian(xlim = c(0,100), ylim = c(0,100)) +
+  annotate(geom = "text", x = 10, y = 100,
+           label = paste("r = ", round(cor(plot1_tib$`Bulk VAF (RHP)`, plot1_tib$`Mutant cell fraction (%)`), 2))) +
+  theme_bw() +
+  theme(aspect.ratio = 1,
+        panel.grid = element_blank(),
+        axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+
+p2 <- plot1_tib %>% 
+  ggplot(aes(x = `Mutant UMI fraction (%)`, y = `Bulk VAF (RHP)`, color = Sample, label = Mutation)) +
+  geom_point() +
+  geom_text_repel(show.legend = F, size = 2, max.overlaps = 10) +
+  scale_color_manual(values = donor_colors[unique(plot1_tib$Sample)]) +
+  coord_cartesian(xlim = c(0,100), ylim = c(0,100)) +
+  annotate(geom = "text", x = 10, y = 100,
+           label = paste("r = ", round(cor(plot1_tib$`Bulk VAF (RHP)`, plot1_tib$`Mutant UMI fraction (%)`), 2))) +
+  theme_bw() +
+  theme(aspect.ratio = 1,
+        panel.grid = element_blank(),
+        axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+
+plot2_tib <- cor_tib %>% filter(! is.na(`Bulk VAF (WES/WGS)`))
+p3 <- plot2_tib %>%
+  ggplot(aes(x = `Mutant cell fraction (%)`, y = `Bulk VAF (WES/WGS)`, color = Sample, label = Mutation)) +
+  geom_point() +
+  geom_text_repel(show.legend = F, size = 2, max.overlaps = 10) +
+  scale_color_manual(values = donor_colors[unique(plot2_tib$Sample)]) +
+  coord_cartesian(xlim = c(0,100), ylim = c(0,100)) +
+  annotate(geom = "text", x = 10, y = 100,
+           label = paste("r = ", round(cor(plot2_tib$`Bulk VAF (WES/WGS)`, plot2_tib$`Mutant cell fraction (%)`), 2))) +
+  theme_bw() +
+  theme(aspect.ratio = 1,
+        panel.grid = element_blank(),
+        axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+
+p4 <- plot2_tib %>%
+  ggplot(aes(x = `Mutant UMI fraction (%)`, y = `Bulk VAF (WES/WGS)`, color = Sample, label = Mutation)) +
+  geom_point() +
+  geom_text_repel(show.legend = F, size = 2, max.overlaps = 10) +
+  scale_color_manual(values = donor_colors[unique(plot2_tib$Sample)]) +
+  coord_cartesian(xlim = c(0,100), ylim = c(0,100)) +
+  annotate(geom = "text", x = 10, y = 100,
+           label = paste("r = ", round(cor(plot2_tib$`Bulk VAF (WES/WGS)`, plot2_tib$`Mutant UMI fraction (%)`), 2))) +
+  theme_bw() +
+  theme(aspect.ratio = 1,
+        panel.grid = element_blank(),
+        axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+
+pdf(file = "5.4.3_Bulk-VAF_vs_XV-seq.pdf", height = 8, width = 10)
+print( plot_grid(p1, p2, p3, p4) )
+dev.off()
+
+
+# Expression vs. genotyping efficiency; TET2 for rebuttal letter ----------------------------------
+
 # Prepare metadata
 seu$TET2_expr <- GetAssayData(seu)["TET2",]
 metadata_tib <- as_tibble(seu@meta.data)
 
 # Make a list of patients and mutations
-tet2_muts_per_sample <- genotyping_tables.tib %>% filter(grepl("TET2", Mutation)) %>% select(Sample, Mutation) %>%
+tet2_muts_per_sample <- genotyping_tables.tib %>% filter(grepl("TET2", Mutation)) %>% dplyr::select(Sample, Mutation) %>%
   split(f = .$Sample) %>% lapply(., function(x) x$Mutation)
 patients <- rep(names(tet2_muts_per_sample), lengths(tet2_muts_per_sample))
 
@@ -84,7 +190,7 @@ for (l in seq_along(patients)) {
     #m <- "TET2.S792*"
     
     # Subset metdata for current patient and mutation, maintain CellType and TET2 expression
-    metadata_subset_tib <- metadata_tib %>% filter(orig.ident == pt) %>% select(CellType, all_of(m), TET2_expr)
+    metadata_subset_tib <- metadata_tib %>% filter(orig.ident == pt) %>% dplyr::select(CellType, all_of(m), TET2_expr)
     
     # Complate list
     names(my_ls)[l] <- paste(m, "in", pt)
@@ -97,7 +203,7 @@ for (l in seq_along(patients)) {
 unlist_my_ls <- do.call(rbind, my_ls)
 unlist_my_ls$mut_pt <- rep(names(my_ls), lapply(my_ls, nrow))
 
-pdf(file = "5.4.2_TET2_expr_vs_genotyping.pdf", height = 8, width = 10)
+pdf(file = "5.4.4_TET2_expr_vs_genotyping.pdf", height = 8, width = 10)
 unlist_my_ls %>%
   mutate(CellType = factor(CellType, levels = levels(seu_ls[[1]]$CellType))) %>%
   mutate(pt = cutf(mut_pt, d = " ", f = 3)) %>%
@@ -122,11 +228,7 @@ dev.off()
 
 
 
-
-
 # Scripts below did not make it into the paper or letter
-
-
 
 # Plot genotyping efficiency depending on how the mutation was detected ---------------------------
 
