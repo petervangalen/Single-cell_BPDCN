@@ -30,28 +30,28 @@ genotyping_tables.tib$Mutation <- gsub("MTAP.rearr.*", "MTAP.rearr", genotyping_
 # Select cells to compare -------------------------------------------------------------------------
 
 # Define two groups of cells: (1) pDCs from healthy donors and pDCs without progression mutations from skin-only patients, and (2) pDCs from patients with bone marrow involvement
-normal_pdcs <- subset(pdcs, cells = colnames(subset(pdcs, bm_involvement != "Yes" & pdcs$progression != "mutant")))
+healthy_pdcs <- subset(pdcs, cells = colnames(subset(pdcs, bm_involvement != "Yes" & pdcs$progression != "mutant")))
 malignant_pdcs <- subset(pdcs, cells = colnames(subset(pdcs, bm_involvement == "Yes")))
 
 # There are widely different numbers of cells for different samples
-as_tibble(normal_pdcs@meta.data) %>% dplyr::select(orig.ident, orig.ident2, bm_involvement) %>% group_by_all() %>% count()
+as_tibble(healthy_pdcs@meta.data) %>% dplyr::select(orig.ident, orig.ident2, bm_involvement) %>% group_by_all() %>% count()
 as_tibble(malignant_pdcs@meta.data) %>% dplyr::select(orig.ident, orig.ident2, bm_involvement) %>% group_by_all() %>% count()
 
 # Take at most 50 cells from each sample. This may yield an error if you don't use dplyr_1.0.99.9000
-normal_pdcs_subset_ids <- as_tibble(normal_pdcs@meta.data, rownames = "cell") %>% group_by(orig.ident2) %>% slice_sample(n = 50) %>% .$cell
+healthy_pdcs_subset_ids <- as_tibble(healthy_pdcs@meta.data, rownames = "cell") %>% group_by(orig.ident2) %>% slice_sample(n = 50) %>% .$cell
 malignant_pdcs_subset_ids <- as_tibble(malignant_pdcs@meta.data, rownames = "cell") %>% group_by(orig.ident2) %>% slice_sample(n = 50) %>% .$cell
-normal_pdcs_subset <- subset(normal_pdcs, cells = normal_pdcs_subset_ids)
+healthy_pdcs_subset <- subset(healthy_pdcs, cells = healthy_pdcs_subset_ids)
 malignant_pdcs_subset <- subset(malignant_pdcs, cells = malignant_pdcs_subset_ids)
 
 # ...that's better
-as_tibble(normal_pdcs_subset@meta.data) %>% dplyr::select(orig.ident, orig.ident2, bm_involvement) %>% group_by_all() %>% count()
+as_tibble(healthy_pdcs_subset@meta.data) %>% dplyr::select(orig.ident, orig.ident2, bm_involvement) %>% group_by_all() %>% count()
 as_tibble(malignant_pdcs_subset@meta.data) %>% dplyr::select(orig.ident, orig.ident2, bm_involvement) %>% group_by_all() %>% count()
 
 
 # Differentially expressed genes ------------------------------------------------------------------
 
 # Generate signature
-markerGenes <- FindMarkers(pdcs, ident.1 = malignant_pdcs_subset_ids, ident.2 = normal_pdcs_subset_ids,
+markerGenes <- FindMarkers(pdcs, ident.1 = malignant_pdcs_subset_ids, ident.2 = healthy_pdcs_subset_ids,
                            logfc.threshold = 0, min.pct = 0, min.cells.feature = 0, return.thresh = 1.01)
 markerGenes_tib <- as_tibble(markerGenes, rownames = "gene") %>% arrange(-avg_log2FC)
 write_tsv(markerGenes_tib, file = "11.2_Malignant-vs-Healthy_pDC_DEG.txt")
@@ -69,7 +69,7 @@ markerGenes_tib %>%
   geom_point() +
   geom_text_repel(data = filter(markerGenes_tib, gene %in% c(highlight_genes, highlight_genes_down)),
                   aes(x = avg_log2FC, y = -log10(p_val_adj), label = gene),
-                  color = "#006400", size = 3, max.overlaps = 30) +
+                  color = "black", size = 3, max.overlaps = 30) +
   scale_color_manual(values = c("#708090", "#9acd32")) +
   coord_cartesian(xlim = c(-max(abs(markerGenes_tib$avg_log2FC)), max(abs(markerGenes_tib$avg_log2FC)))) +
   theme_bw() +
@@ -111,14 +111,14 @@ write.table(bpdcn_sign, file = "bpdcn_sign.txt", quote = F, sep = "\t", row.name
 # we ended up just using the section above for the paper
 
 # Extract gene expression matrices
-normal_mat <- GetAssayData(normal_pdcs_subset, slot = "data")
+normal_mat <- GetAssayData(healthy_pdcs_subset, slot = "data")
 malignant_mat <- GetAssayData(malignant_pdcs_subset, slot = "data")
 
 # Make table with gene info
 diffgenes.tib <- tibble(gene = rownames(normal_mat),
-                        normal_pdcs = rowMeans(normal_mat),
+                        healthy_pdcs = rowMeans(normal_mat),
                         malignant_pdcs = rowMeans(malignant_mat))
-diffgenes.tib <- mutate(diffgenes.tib, logFC = malignant_pdcs - normal_pdcs)
+diffgenes.tib <- mutate(diffgenes.tib, logFC = malignant_pdcs - healthy_pdcs)
 
 # Add P-values
 diffgenes.tib$pval <- p.adjust(sapply(diffgenes.tib$gene, function(z)

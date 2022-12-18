@@ -22,8 +22,8 @@ names(seu_ls) <- cutf(basename(seurat_files), d = "_")
 # Compare ASXL1 mutation calls from two different PCR reactions -----------------------------------
 
 # Load XV-seq data. Of note, the capture of mutated and wild-type transcripts is mutually exclusive (which makes sense because the capture efficiency was very low so the chance of capturing both loci in one cell is very low)
-ASXL1.1886 <- read_table("../04_XV-seq/Pt10Dx/ASXL1.1886/ASXL1.1886.FilteredCells.txt")
-ASXL1.1898 <- read_table("../04_XV-seq/Pt10Dx/ASXL1.1898/ASXL1.1898.FilteredCells.txt")
+ASXL1.1886 <- read_table("../04_XV-seq/Pt10Dx/ASXL1.1886/ASXL1.1886.FilteredCells.txt") # used throughout paper
+ASXL1.1898 <- read_table("../04_XV-seq/Pt10Dx/ASXL1.1898/ASXL1.1898.FilteredCells.txt") # used only as validation
 # Filter by cells that pass QC
 ASXL1.1886 <- ASXL1.1886 %>% filter(BC %in% cutf(colnames(seu_ls[["Pt10Dx"]]), d = "-"))
 ASXL1.1898 <- ASXL1.1898 %>% filter(BC %in% cutf(colnames(seu_ls[["Pt10Dx"]]), d = "-"))

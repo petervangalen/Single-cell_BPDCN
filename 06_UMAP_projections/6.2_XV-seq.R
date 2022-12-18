@@ -42,13 +42,13 @@ meltbins$Var1 <- rep(bins$x1, n)
 meltbins$Var2 <- rep(bins$x2, each = n)
 
 # CHOOSE ONE
-muts <- genotyping_tables.tib$Mutation
+muts <- genotyping_tables.tib$Mutation %>% unique
 pdf_name <- "all_mutations"
 # OR
-muts <- filter(genotyping_tables.tib, `Founder or progression mutation` == "Founder") %>% .$Mutation
+muts <- filter(genotyping_tables.tib, `Founder or progression mutation` == "Founder") %>% .$Mutation %>% unique
 pdf_name <- "founder_mutations"
 # OR
-muts <- filter(genotyping_tables.tib, `Founder or progression mutation` == "Progression") %>% .$Mutation
+muts <- filter(genotyping_tables.tib, `Founder or progression mutation` == "Progression") %>% .$Mutation %>% unique
 pdf_name <- "progression_mutations"
 
 

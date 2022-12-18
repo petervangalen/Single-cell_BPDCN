@@ -47,15 +47,23 @@ genotyping_tables.tib$Mutation <- gsub("MTAP.rearr.*", "MTAP.rearr", genotyping_
 
 metadata_tib <- as_tibble(seu@meta.data, rownames = "cell")
 
+# Text: "Out of 4,263 bone marrow cells with UV-associated (TC>TT, CC>CT) progression mutations, 4,100 (96.2%) were classified as malignant BPDCN cells (Fig. 3f, Extended Data Fig. 9e)."
+all_uv_muts <- genotyping_tables.tib %>%
+  filter(`CC>CT (UV-associated)`	== "Yes" | `TC>TT (UV-associated)` == "Yes" | `CC>TT (UV-specific)` == "Yes") %>%
+  .$Mutation %>% unique
+metadata_tib$any_uv_mut <- apply(dplyr::select(metadata_tib, all_of(all_uv_muts)), 1, function(x) sum(x %in% "mutant") > 0)
+metadata_tib %>% filter(any_uv_mut == T) %>% nrow
+metadata_tib %>% filter(any_uv_mut == T, CellType == "pDC", is_malignant == "Malignant") %>% nrow
+
 # Select UV-associated mutations to show. See also the email thread "Bar plot" around 220918
-current_mut <- c("SMARCC1.chr3:47627735:G/A", # Patient 1 CC>CT
-                 "FAM98C.chr19:38899400:G/A", # Patient 1 CC>CT
-                 "SETX.chr9:135136947:G/A",   # Patient 1 CC>CT
-                 "HNRNPUL1.F559F",            # Patient 10 TC>TT
-                 "MAP4K5.P667S",              # Patient 10 TC>TT
-                 "ACAP2.L97M",                # Patient 10 CC>CT
-                 "IDH2.R140Q",                # Patient 14 CC>CT
-                 "ETV6.R369W")                # Patient 14 CC>TT
+selected_uv_mut <- c("SMARCC1.chr3:47627735:G/A", # Patient 1 CC>CT
+                     "FAM98C.chr19:38899400:G/A", # Patient 1 CC>CT
+                     "SETX.chr9:135136947:G/A",   # Patient 1 CC>CT
+                     "HNRNPUL1.F559F",            # Patient 10 TC>TT
+                     "MAP4K5.P667S",              # Patient 10 TC>TT
+                     "ACAP2.L97M",                # Patient 10 CC>CT
+                     "IDH2.R140Q",                # Patient 14 CC>CT
+                     "ETV6.R369W")                # Patient 14 CC>TT
 # Omit - reason:
 #Pt10 "TET2.H1380Y" - founder, not specific to BPDCN cells
 #Pt10 "PRKDC.chr8:48713410:C/T" - subclonal expansion that disappears
@@ -64,14 +72,14 @@ current_mut <- c("SMARCC1.chr3:47627735:G/A", # Patient 1 CC>CT
 #Pt14 "EZH2.P132L" - only detected in non-pDCs with a low BPDCN score
 
 # Add genotyping summary
-metadata_tib$UV_mutations <- ifelse(apply(dplyr::select(metadata_tib, all_of(current_mut)), 1,
+metadata_tib$UV_mutations <- ifelse(apply(dplyr::select(metadata_tib, all_of(selected_uv_mut)), 1,
                                      function(x) sum(grepl("wildtype", x) > 0)), yes = "wildtype", no = "no call")
-metadata_tib$UV_mutations <- ifelse(apply(dplyr::select(metadata_tib, all_of(current_mut)), 1,
+metadata_tib$UV_mutations <- ifelse(apply(dplyr::select(metadata_tib, all_of(selected_uv_mut)), 1,
                                      function(x) sum(grepl("mutant", x) > 0)), yes = "mutant", no = metadata_tib$UV_mutations)
 
 # Factorize & subset relevant information
 metadata_tib$UV_mutations <- factor(metadata_tib$UV_mutations, levels = c("no call", "wildtype", "mutant"))
-metadata_tib <- metadata_tib %>% dplyr::select(cell, orig.ident, CellType, bpdcn_sign_score, is_malignant, RF_pDC_score, all_of(current_mut), UV_mutations)
+metadata_tib <- metadata_tib %>% dplyr::select(cell, orig.ident, CellType, bpdcn_sign_score, is_malignant, RF_pDC_score, all_of(selected_uv_mut), UV_mutations)
 
 
 # Visualize barplots of each mutation in healthy, premalignant, and malignant cells ---------------
@@ -80,8 +88,8 @@ metadata_tib <- metadata_tib %>% dplyr::select(cell, orig.ident, CellType, bpdcn
 split_ls <- vector(mode = "list")
 
 # Wrangle
-for (m in current_mut) {
-#m <- current_mut[1]
+for (m in selected_uv_mut) {
+#m <- selected_uv_mut[1]
 
   # Subset metadata for cells that were genotyped for the current mutation
   metadata_subset_tib <- metadata_tib %>% filter(get(m) %in% c("wildtype", "mutant", "no call")) %>%

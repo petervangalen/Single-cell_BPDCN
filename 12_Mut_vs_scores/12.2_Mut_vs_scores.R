@@ -121,8 +121,14 @@ plot_tib <- metadata_tib %>% filter(orig.ident != "BM") %>%
   mutate(mut_type = factor(mut_type, levels = c("f_call", "p_call", "cc.ct", "tc.tt", "cc.tt")))
 n_call <- sum(grepl("mutant|wildtype", plot_tib$mut_call))
 
+# For Figure 3, save four versions:
+mut_colors <- c(wildtype = "#32cd32", mutant = "#dc143c", `no call` = "#dcdcdc"); color_version = 1 # original
+mut_colors <- c(wildtype = "#33CC33", mutant = "#CC3366", `no call` = "#dcdcdc"); color_version = 2
+mut_colors <- c(wildtype = "#33CC33", mutant = "#FF6600", `no call` = "#dcdcdc"); color_version = 3
+mut_colors <- c(wildtype = "#33CC33", mutant = "#FFCC00", `no call` = "#dcdcdc"); color_version = 4
+
 # Visualize
-pdf("12.2.2_Scores-vs-Mut_type.pdf", width = 16, height = 4)
+pdf(paste0("12.2.2_Scores-vs-Mut_type_ColorVersion", color_version, ".pdf"), width = 16, height = 4)
 
 plot_tib %>%
   mutate(mut_call = factor(mut_call, levels = c("wildtype", "mutant", "no call"))) %>%

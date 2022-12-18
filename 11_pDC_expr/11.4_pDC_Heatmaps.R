@@ -50,8 +50,8 @@ seu$any_mut <- ifelse(apply(seu@meta.data[,all_mutations], 1, function(x)
   sum(grepl("wildtype|mutant", x) > 0)), yes = "Yes", no = "No")
 
 # Ensure samples are nicely ordered later
-seu$orig.ident <- factor(seu$orig.ident, levels = c("BM", "Pt1Dx", "Pt1Rem", "Pt5Dx", "Pt9Dx", "Pt10Dx", "Pt10Rel", 
-                                                    "Pt12Dx", "Pt12Rel", "Pt14Dx", "Pt15Dx", "Pt16Dx"))
+seu$orig.ident <- factor(seu$orig.ident, levels = c("BM", "Pt15Dx", "Pt16Dx", "Pt1Dx", "Pt1Rem", "Pt5Dx", "Pt9Dx",
+                                                    "Pt10Dx", "Pt10Rel", "Pt12Dx", "Pt12Rel", "Pt14Dx"))
 
 
 # Subset data to make two heatmaps ----------------------------------------------------------------
@@ -61,7 +61,7 @@ metadata_tib <- as_tibble(seu@meta.data, rownames = "cell") %>%
   arrange(orig.ident)
 
 # First, subset for a heatmap showing pDCs from healthy donors and those with malignant infiltration
-healthy_ids <- metadata_tib %>% filter(is_malignant == "Healthy") %>% .$cell %>% sample(6*30)
+healthy_ids <- metadata_tib %>% filter(is_malignant == "Healthy") %>% .$cell
 malignant_ids <- metadata_tib %>% filter(is_malignant == "Malignant") %>%
   filter(bm_involvement == "Yes", any_mut != "No") %>%
   group_by(orig.ident) %>% slice_sample(n = 30) %>% .$cell
@@ -70,7 +70,7 @@ pdcs_healthy_malignant <- subset(seu, cells = c(healthy_ids, malignant_ids))
 # Then, subset data for for a heatmap showing pDCs of skin-only patients, separated into premalignant and
 # presumed rare circulating tumor cells  
 premalignant_ids <- metadata_tib %>% filter(is_malignant == "Premalignant") %>%
-  #filter(any_mut != "No") %>%
+  filter(any_mut != "No") %>% # comment out this line to show more premalignant pDCs
   .$cell
 ctc_ids <- metadata_tib %>% filter(bm_involvement == "No", is_malignant == "Malignant") %>% .$cell
 pdcs_skin_subset <- subset(seu, cells = c(premalignant_ids, ctc_ids))
@@ -79,10 +79,11 @@ pdcs_skin_subset <- subset(seu, cells = c(premalignant_ids, ctc_ids))
 mutation_detection <- as_tibble(merge(pdcs_healthy_malignant, pdcs_skin_subset)@meta.data) %>%
   dplyr::select(unique(na.omit(genotyping_tables.tib$Mutation))) %>%
   apply(., 2, function(x) sum(grepl("mutant|wildtype", x)))
-show_f_mut <- intersect(names(mutation_detection)[mutation_detection > 5],
+show_f_mut <- intersect(names(mutation_detection)[mutation_detection > 3],
                         filter(genotyping_tables.tib, `Founder or progression mutation` == "Founder")$Mutation)
-show_p_mut <- intersect(names(mutation_detection)[mutation_detection > 5],
+show_p_mut <- intersect(names(mutation_detection)[mutation_detection > 3],
                         filter(genotyping_tables.tib, `Founder or progression mutation` == "Progression")$Mutation)
+show_p_mut
 
 # Load gene expression data, then normalize (like in 07_DEG_Heatmaps)
 expr_mat <- as.matrix(GetAssayData(pdcs_healthy_malignant, slot = "data"))[bpdcn_sign,]
@@ -92,7 +93,6 @@ expr_mat[expr_mat < z.lim[1]] <- z.lim[1]
 expr_mat[expr_mat > z.lim[2]] <- z.lim[2]
 
 # Adjust some colors
-mut_colors[3] <- "white"
 col_bw <- colorRamp2(breaks = c(min(seu$bpdcn_sign_score), max(seu$bpdcn_sign_score)), colors = c("white", "black"))
 
 # Define annotation objects
@@ -120,7 +120,7 @@ hm <- Heatmap(as.matrix(expr_mat),
               top_annotation = top_anno.ha,
               bottom_annotation = bottom_anno.ha,
               name = "Expr",
-              column_title = "Cells classified as pDC in healthy BM\nand samples with BM involvement",
+              column_title = "pDCs from healthy donors and\nsamples with known marrow involvement",
               column_title_gp = gpar(fontsize = 10),
               border = T,
               use_raster = T,
@@ -164,7 +164,7 @@ hm <- Heatmap(as.matrix(expr_mat),
               top_annotation = top_anno.ha,
               bottom_annotation = bottom_anno.ha,
               name = "Expr",
-              column_title = "Cells classified as pDC in samples\nwithout bone marrow involvement",
+              column_title = "pDCs from samples without\nknown bone marrow involvement",
               column_title_gp = gpar(fontsize = 10),
               border = T,
               use_raster = T,
@@ -188,6 +188,7 @@ hm_anno_df$prog_summary <- ifelse(apply(hm_anno_df[,show_p_mut], 1, function(x)
   sum(grepl("mutant", x) > 0)), yes = "mutant", no = hm_anno_df$prog_summary)
 
 # Define annotation objects
+mut_colors[3] <- "white"
 top_anno.ha <- HeatmapAnnotation(Donor = as.character(hm_anno_df$orig.ident),
                                  Score = hm_anno_df$bpdcn_sign_score,
                                  col = list(Donor = donor_colors, Score = col_bw),
@@ -210,7 +211,7 @@ hm <- Heatmap(as.matrix(expr_mat),
               top_annotation = top_anno.ha,
               bottom_annotation = bottom_anno.ha,
               name = "Expr",
-              column_title = "Cells classified as pDC in samples\nwithout bone marrow involvement",
+              column_title = "pDCs from samples without\nknown bone marrow involvement",
               column_title_gp = gpar(fontsize = 10),
               border = T,
               use_raster = T,

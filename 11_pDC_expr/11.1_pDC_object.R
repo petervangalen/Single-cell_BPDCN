@@ -187,6 +187,7 @@ pdcs$progression <- ifelse(apply(pdcs@meta.data[,p_mut], 1, function(x) sum(grep
 pdcs$progression <- ifelse(apply(pdcs@meta.data[,p_mut], 1, function(x) sum(grepl("mutant", x) > 0)), yes = "mutant", no = pdcs$progression)
 
 # Save
+pdcs <- DietSeurat(pdcs, dimreducs = "umap")
 saveRDS(pdcs, file = "pDCs.rds")
 
 

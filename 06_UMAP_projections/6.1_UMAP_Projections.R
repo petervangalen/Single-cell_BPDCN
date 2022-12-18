@@ -109,13 +109,30 @@ bm_involvement_metadata <- tibble(bm_involved@meta.data) %>% dplyr::select(proje
 # From https://www.schemecolor.com/light-green-to-blue-gradient.php
 density_colors <- c("#90EE90", "#67D89A", "#34BEA5", "#1EA9AC", "#1D80AF", "#1C61B1")
 
-# Plot
-pdf("6.1_Density_plots.pdf", width = 20, height = 6)
-
 # Three plots side-by-side
+pdf("6.1_Density_plots.pdf", width = 15, height = 5)
+
+# Using facet_wrap (does not allow separate color scales for each)
+anno_tib <- tibble(id = c("HD", "No", "Yes"),
+  fraction = c(paste0(round(nrow(filter(bm_metadata, between(x, 6, 8), between(y, 9, 13)))/nrow(bm_metadata)*100, 2), "%"),
+               paste0(round(nrow(filter(skin_only_metadata, between(x, 6, 8), between(y, 9, 13)))/nrow(skin_only_metadata)*100, 2), "%"),
+               paste0(round(nrow(filter(bm_involvement_metadata, between(x, 6, 8), between(y, 9, 13)))/nrow(bm_involvement_metadata)*100, 2), "%")))
+  
+bind_rows(HD = bm_metadata, No = skin_only_metadata, Yes = bm_involvement_metadata, .id = "id") %>%
+  ggplot(aes(x, y, color = Density)) +
+  geom_point(size = 0.8) +
+  scale_color_gradientn(colors = density_colors) +
+  annotate("rect", xmin = 6, xmax = 8, ymin = 9, ymax = 13, color = "black", fill = NA) +
+  geom_text(data = anno_tib, mapping = aes(x = 10, y = 11, label = fraction), color = "black", size = 7) +
+  facet_wrap(~ id) +
+  theme_bw() +
+  theme(aspect.ratio = 1, axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(),
+        panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))
+
+# For separate color scales, you need to split up the data. This is not used in the paper.
 p1 <- bm_metadata %>%
   ggplot(aes(x, y, color = Density)) +
-  geom_point(size = 1) +
+  geom_point() +
   scale_color_gradientn(colors = density_colors) +
   annotate("rect", xmin = 6, xmax = 8, ymin = 9, ymax = 13, color = "black", fill = NA) +
   annotate("text", label = paste0(round(nrow(filter(bm_metadata, between(x, 6, 8), between(y, 9, 13)))/nrow(bm_metadata)*100, 2), "%"),
@@ -145,16 +162,6 @@ p3 <- bm_involvement_metadata %>%
         panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))
 
 grid.arrange(p1, p2, p3, ncol = 3)
-
-# Instead of grid.arrange, you could use facet_wrap, but that doesn't allow separate color scales for each:
-#bind_rows(HD = bm_metadata, No = skin_only_metadata, Yes = bm_involvement_metadata, .id = "id") %>%
-#  ggplot(aes(x, y, color = Density)) +
-#  geom_point(size = 0.5) +
-#  scale_color_gradientn(colors = density_colors) +
-#  facet_wrap(~ id) +
-#  theme_bw() +
-#  theme(aspect.ratio = 1, axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(),
-#        panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))
 
 dev.off()
 

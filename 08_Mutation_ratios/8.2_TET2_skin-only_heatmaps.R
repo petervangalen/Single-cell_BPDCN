@@ -45,7 +45,7 @@ tet2_results.ls <- lapply(results.ls, function(x) x[grepl("TET2", x$mutation),])
 tet2_results.dt <- do.call(rbind, tet2_results.ls)
 tet2_results.dt$mutation <- paste0(tet2_results.dt$Sample, "-", tet2_results.dt$mutation)
 
-# Plot
+# Plot (skin-only; aka without bone marrow involvement)
 pdf(file = paste0("TET2_skin-only.pdf"), width = 6, height = 6)
 print(
 ggplot(data = tet2_results.dt, aes(x = lineage, y = mutation, fill = fraction, label = paste0(mut_counts, "/", count))) +
