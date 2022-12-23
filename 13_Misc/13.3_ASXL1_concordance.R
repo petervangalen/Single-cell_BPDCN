@@ -25,22 +25,22 @@ names(seu_ls) <- cutf(basename(seurat_files), d = "_")
 ASXL1.1886 <- read_table("../04_XV-seq/Pt10Dx/ASXL1.1886/ASXL1.1886.FilteredCells.txt") # used throughout paper
 ASXL1.1898 <- read_table("../04_XV-seq/Pt10Dx/ASXL1.1898/ASXL1.1898.FilteredCells.txt") # used only as validation
 # Filter by cells that pass QC
-ASXL1.1886 <- ASXL1.1886 %>% filter(BC %in% cutf(colnames(seu_ls[["Pt10Dx"]]), d = "-"))
-ASXL1.1898 <- ASXL1.1898 %>% filter(BC %in% cutf(colnames(seu_ls[["Pt10Dx"]]), d = "-"))
+ASXL1.1886 <- ASXL1.1886 %>% filter(BC %in% cutf(colnames(seu_ls[["Pt10Dx"]]), d = "-")) # 42 cells
+ASXL1.1898 <- ASXL1.1898 %>% filter(BC %in% cutf(colnames(seu_ls[["Pt10Dx"]]), d = "-")) # 40 cells
 
 # What are the mutated and wildtype cells?
-ASXL1.1886_mutated_cells <- ASXL1.1886 %>% filter(mutUMIs > 0) %>% .$BC
-ASXL1.1886_wildtype_cells <- ASXL1.1886 %>% filter(wtUMIs > 0) %>% .$BC
-ASXL1.1898_mutated_cells <- ASXL1.1898 %>% filter(mutUMIs > 0) %>% .$BC
-ASXL1.1898_wildtype_cells <- ASXL1.1898 %>% filter(wtUMIs > 0) %>% .$BC
+ASXL1.1886_mutated_cells <- ASXL1.1886 %>% filter(mutUMIs > 0) %>% .$BC # 9 cells
+ASXL1.1886_wildtype_cells <- ASXL1.1886 %>% filter(wtUMIs > 0) %>% .$BC # 33 cells
+ASXL1.1898_mutated_cells <- ASXL1.1898 %>% filter(mutUMIs > 0) %>% .$BC # 8 cells
+ASXL1.1898_wildtype_cells <- ASXL1.1898 %>% filter(wtUMIs > 0) %>% .$BC # 32 cells
 
 # Stats for response letter
-length(ASXL1.1886_mutated_cells)
-length(ASXL1.1898_mutated_cells)
-length(intersect(ASXL1.1886_mutated_cells, ASXL1.1898_mutated_cells))
-ncol(seu_ls[["Pt10Dx"]])
+ncol(seu_ls[["Pt10Dx"]]) # out of total 10,106
+length(ASXL1.1886_mutated_cells) # 9
+length(ASXL1.1898_mutated_cells) # 8
+length(intersect(ASXL1.1886_mutated_cells, ASXL1.1898_mutated_cells)) # overlap 7
 
-length(ASXL1.1886_wildtype_cells)
-length(ASXL1.1898_wildtype_cells)
-length(intersect(ASXL1.1886_wildtype_cells, ASXL1.1898_wildtype_cells))
+length(ASXL1.1886_wildtype_cells) # 33
+length(ASXL1.1898_wildtype_cells) # 32
+length(intersect(ASXL1.1886_wildtype_cells, ASXL1.1898_wildtype_cells)) # overlap 32
 

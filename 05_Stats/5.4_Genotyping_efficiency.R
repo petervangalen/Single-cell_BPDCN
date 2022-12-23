@@ -4,6 +4,7 @@
 library(tidyverse)
 library(Seurat)
 library(readxl)
+library(janitor)
 library(ggrepel)
 library(cowplot)
 
@@ -34,11 +35,11 @@ genotyping_tables.tib$Mutation <- gsub("MTAP.rearr.*", "MTAP.rearr", genotyping_
 genotyping_tables.tib$Mutation %>% unique()
 
 # Text: "RAB9A, CDKN2A, and RPS24 in 37%, 20%, and 99% of cells, respectively"
-as_tibble(subset(seu, orig.ident %in% c("Pt10Dx", "Pt10Rel"))@meta.data) %>% .$RAB9A.3pUTR %>% table
+as_tibble(subset(seu, orig.ident %in% c("Pt10Dx", "Pt10Rel"))@meta.data) %>% .$RAB9A.3pUTR %>% tabyl
 (1843+4591)/(1843+11170+4591) # 0.3655
-as_tibble(subset(seu, orig.ident %in% c("Pt10Dx", "Pt10Rel"))@meta.data) %>% .$MTAP.rearr %>% table
+as_tibble(subset(seu, orig.ident %in% c("Pt10Dx", "Pt10Rel"))@meta.data) %>% .$MTAP.rearr %>% tabyl
 (1724+1750)/(1724+14130+1750) # 0.197
-as_tibble(subset(seu, orig.ident %in% c("Pt10Dx", "Pt10Rel"))@meta.data) %>% .$`RPS24.chr10:79795273:T/C` %>% table
+as_tibble(subset(seu, orig.ident %in% c("Pt10Dx", "Pt10Rel"))@meta.data) %>% .$`RPS24.chr10:79795273:T/C` %>% tabyl
 (678+9326)/(678+102+9326) # 0.9899
 
 # Text: "Investigating 16 founder mutations in uninvolved bone marrow from five BPDCN patients, we detected a total of 10,245 wild-type and 1,204 mutated cells"
@@ -49,6 +50,19 @@ f_summary <- tibble(n_mut = dplyr::select(uninvolved_tib, f_mut) %>% apply(., 1,
                     n_wt = dplyr::select(uninvolved_tib, f_mut) %>% apply(., 1, function(x) sum(grepl("wildtype", x))))
 f_summary %>% filter(n_mut == 0, n_wt > 0)
 f_summary %>% filter(n_mut > 0)
+
+# Cover letter: "The revision includes genotyping for 40 DNA mutations across n=27,994 cells (up from 15 mutations in n=12,613 cells )."
+all_muts <- unique(genotyping_tables.tib$Mutation)
+all_muts %in% colnames(seu@meta.data)
+calls_per_cell <- apply(select(seu@meta.data, all_muts), 1, function(x) sum(grepl("mutant|wildtype", x)))
+plot(rev(sort(calls_per_cell)))
+sum(calls_per_cell) # 45,576 total transcripts called
+sum(calls_per_cell > 0) # 27,994 cells called
+# Submission only
+submission_muts <- filter(genotyping_tables.tib, `Initial submission or revision` == "Submission") %>% .$Mutation %>% unique
+calls_per_cell <- apply(select(seu@meta.data, submission_muts), 1, function(x) sum(grepl("mutant|wildtype", x)))
+sum(calls_per_cell) # 21,613 total transcripts called
+sum(calls_per_cell > 0) # 12,963 cells called
 
 
 # Plot genotyping efficiency for all mutations ----------------------------------------------------

@@ -88,10 +88,10 @@ pdcs <- subset(pdcs, features = setdiff(rownames(pdcs), rp.ch))
 # pDC UMAP ----------------------------------------------------------------------------------------
 
 # Calculate UMAP coordinates for pDCs See 1_Seurat_Harmony for more information.
-pdcs <- CellCycleScoring(pdcs, s.features = cc.genes$s.genes, g2m.features = cc.genes$g2m.genes) # this takes ~30 minutes
+pdcs <- CellCycleScoring(pdcs, s.features = cc.genes$s.genes, g2m.features = cc.genes$g2m.genes)
 pdcs <- NormalizeData(pdcs)
 pdcs <- FindVariableFeatures(pdcs)
-pdcs <- ScaleData(pdcs, vars.to.regress = c("S.Score", "G2M.Score"), features = rownames(pdcs))
+pdcs <- ScaleData(pdcs, vars.to.regress = c("S.Score", "G2M.Score"), features = rownames(pdcs)) # this takes ~30 minutes
 pdcs <- RunPCA(pdcs, features = VariableFeatures(object = pdcs))
 
 # I'm skipping these Harmony lines
@@ -185,6 +185,21 @@ pdcs$founder <- ifelse(apply(pdcs@meta.data[,f_mut], 1, function(x) sum(grepl("w
 pdcs$founder <- ifelse(apply(pdcs@meta.data[,f_mut], 1, function(x) sum(grepl("mutant", x) > 0)), yes = "mutant", no = pdcs$founder)
 pdcs$progression <- ifelse(apply(pdcs@meta.data[,p_mut], 1, function(x) sum(grepl("wildtype", x) > 0)), yes = "wildtype", no = "no call")
 pdcs$progression <- ifelse(apply(pdcs@meta.data[,p_mut], 1, function(x) sum(grepl("mutant", x) > 0)), yes = "mutant", no = pdcs$progression)
+
+# For supplement text:
+# We enriched 16 founder mutations from samples without bone marrow involvement
+filter(genotyping_tables.tib, Sample %in% skin_only_samples,
+       `Founder or progression mutation` == "Founder") %>% .$Mutation %>% unique
+# We enriched 13 progression mutations from samples without bone marrow involvement
+filter(genotyping_tables.tib, Sample %in% skin_only_samples,
+       `Founder or progression mutation` == "Progression") %>% .$Mutation %>% unique
+# Transcripts for 15 founder mutations were detected in samples without marrow involvement
+no_involvement <- subset(pdcs, orig.ident %in% skin_only_samples)
+sum( apply(no_involvement@meta.data[,f_mut], 2, function(x) sum(grepl("mutant|wildtype", x))) > 0 )
+# Transcripts for 11 progression mutations were detected in samples without marrow involvement
+sum( apply(no_involvement@meta.data[,p_mut], 2, function(x) sum(grepl("mutant|wildtype", x))) > 0 )
+# Six progression mutations were detected in samples without marrow involvement (all Patient 10)
+sum( apply(no_involvement@meta.data[,p_mut], 2, function(x) sum(grepl("mutant", x))) > 0 )
 
 # Save
 pdcs <- DietSeurat(pdcs, dimreducs = "umap")

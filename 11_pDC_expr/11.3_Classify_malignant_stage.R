@@ -78,7 +78,7 @@ seu@meta.data %>% mutate(my_order = sample(ncol(seu))) %>% arrange(my_order) %>%
 dev.off()
 
 
-# Relate BPDCN Signature Score to progression mutations in  samples without involvement -----------
+# Relate BPDCN Signature Score to progression mutations in samples without involvement ------------
 
 # This justifies why pDCs from patients without marrow involvement with a BPDCN Signature
 # Score of >0.5 should be classified as malignant
