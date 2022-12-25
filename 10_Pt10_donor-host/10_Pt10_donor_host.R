@@ -22,8 +22,6 @@ donor_colors <- popcol.tib$hex[24:41]
 names(donor_colors) <- popcol.tib$pop[24:41]
 mut_colors <- popcol.tib$hex[44:46]
 names(mut_colors) <- popcol.tib$pop[44:46]
-group_colors <- popcol.tib$hex[41:43]
-names(group_colors) <- popcol.tib$pop[41:43]
 
 # Load Seurat objects
 seurat_files <- list.files("../04_XV-seq", pattern = "*.rds", full.names = T)

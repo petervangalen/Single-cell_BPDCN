@@ -112,7 +112,7 @@ seu.ls <- list(Pt1Dx = merge(seu_10x.ls$`Pt1Dx-2`, list(seu_10x.ls$`Pt1Dx-3`)),
                Pt15Dx = merge(seu_10x.ls$`Pt15Dx-5`, list(seu_10x.ls$`Pt15Dx-6`, seu_10x.ls$`Pt15Dx-7`)),
                Pt16Dx = merge(seu_10x.ls$`Pt16Dx-1`, list(seu_10x.ls$`Pt16Dx-2`, seu_10x.ls$`Pt16Dx-3`)))
 
-# Apply the same quality metrics to BPDCN as to healthy controls (see 1_Seurat_Harmony.R)
+# Apply the same quality metrics to BPDCN as to healthy controls (see 1_Seurat_Harmony.R). In preprocessing, cells with >20% mitochondrial genes were already removed.
 seu.ls <- lapply(seu.ls, subset, nCount_RNA > 2000 & nFeature_RNA > 1000)
 
 # Remove replicate from orig.ident metadata (this is still saved in the replicate column)

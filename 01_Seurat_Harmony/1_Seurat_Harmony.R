@@ -13,10 +13,10 @@ rm(list=ls())
 # Functions
 source("../Single-cell_BPDCN_Functions.R")
 
-# Load Seq-Well BM02-1 data. This already has undergone some standard QCs.
+# Load Seq-Well BM02-1 data. This already has undergone some standard QC filtering steps.
 load("../../ExprStar/190514.190301.BM02-1.star/190514.190301.BM02-1.filter.RData", verbose = T)
 colnames(CM.df) <- paste0(cutf(colnames(CM.df), d = "_", f = 2), "-", gsub("BM02-", "BM6.", cutf(colnames(CM.df), d = "_", f = 1)))
-# Load 10x BM data. This already has undergone some standard QCs.
+# Load 10x BM data. This already has undergone some standard QC filtering steps.
 TenX_BM_Files <- list.files("../../CellRanger", recursive = T, pattern = "BM.*.RData", full.names = T) 
 CM_merge.dgm <- NULL
 for (x in TenX_BM_Files) {
@@ -41,7 +41,7 @@ n_dimensions <- 40
   
 bm <- CreateSeuratObject(counts = BMall.mat, project = "BM")
 
-# I found that increasing the QC thresholds here improves data visualization and clustering
+# I found that increasing the QC thresholds here improves data visualization and clustering. In preprocessing, cells with >20% mitochondrial genes were already removed.
 bm <- subset(bm, nCount_RNA > 2000 & nFeature_RNA > 1000)
 
 # Add replicate and tech information to bm object metadata
