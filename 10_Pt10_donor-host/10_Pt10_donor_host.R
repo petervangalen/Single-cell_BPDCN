@@ -50,13 +50,15 @@ orig.host.donor.ch[names(orig.host.donor.ch) %in% genotype.dt[is.na(genotype.dt$
 # Add meta.data
 seu$orig.host.donor <- factor(x = orig.host.donor.ch, levels = c("BM", "Pt10Rel.Host", "Pt10Rel.Donor", "Pt10Rel.Doublet", "Pt10Rel.Inconclusive"))
 
-# For the paper: 
+# For the paper:
 table(seu$orig.ident)
 table(seu$orig.host.donor)
 # So 7,498 total cells, of which 148 doublets (1.97%) and 234 inconclusive (3.12%)
 # We were able to determine the origin of (4453+2663)/7498 = 94.9% of cells
+# It says 2663 here and 2664 in EDF5f b/c "GTCAGCGAGCATCAGG-Pt10Rel.2" is missing from colnames(seu),
+# possibly  may be due to an updated allowlist of CBs.
 
-# Exclude doublets and inconclusive and Seq-Well data (BM6)
+# Exclude doublets and inconclusive and Seq-Well data (BM6) 
 NormalRelapse <- subset(seu, subset = orig.host.donor %in% c("BM", "Pt10Rel.Host", "Pt10Rel.Donor") & tech == "TenX")
 
 # Compare data quality (considering I did not do batch correction)

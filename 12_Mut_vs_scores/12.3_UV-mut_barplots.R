@@ -47,13 +47,13 @@ genotyping_tables.tib$Mutation <- gsub("MTAP.rearr.*", "MTAP.rearr", genotyping_
 
 metadata_tib <- as_tibble(seu@meta.data, rownames = "cell")
 
-# Text: "Out of 4,263 bone marrow cells with UV-associated (TC>TT, CC>CT) progression mutations, 4,100 (96.2%) were classified as malignant BPDCN cells (Fig. 3f, Extended Data Fig. 9e)."
+# Text: "Out of 4,263 bone marrow cells with UV progression mutations, 4,100 (96.2%) were classified as malignant BPDCN cells"
 all_uv_muts <- genotyping_tables.tib %>%
   filter(`CC>CT (UV-associated)`	== "Yes" | `TC>TT (UV-associated)` == "Yes" | `CC>TT (UV-specific)` == "Yes") %>%
   .$Mutation %>% unique
 metadata_tib$any_uv_mut <- apply(dplyr::select(metadata_tib, all_of(all_uv_muts)), 1, function(x) sum(x %in% "mutant") > 0)
 metadata_tib %>% filter(any_uv_mut == T) %>% nrow
-metadata_tib %>% filter(any_uv_mut == T, CellType == "pDC", is_malignant == "Malignant") %>% nrow
+metadata_tib %>% filter(any_uv_mut == T, is_malignant == "Malignant") %>% nrow
 
 # Select UV-associated mutations to show. See also the email thread "Bar plot" around 220918
 selected_uv_mut <- c("SMARCC1.chr3:47627735:G/A", # Patient 1 CC>CT
