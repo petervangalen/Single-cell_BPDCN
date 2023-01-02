@@ -3,6 +3,8 @@
 
 library(tidyverse)
 library(Seurat)
+library(readxl)
+library(janitor)
 
 setwd("~/DropboxMGB/Projects/Single-cell_BPDCN/AnalysisPeter/scBPDCN-analysis/05_Stats")
 
@@ -53,19 +55,21 @@ as_tibble(seu@meta.data) %>% select(all_of(unique(genotyping_tables.tib$Mutation
 length(unique(genotyping_tables.tib$Mutation))
 genotyping_tables.tib %>% filter(`Initial submission or revision` == "Submission") %>% .$Mutation %>% unique %>% length
 
+# Number of genotyped cells at initial submission for Reviewer 1 Question 3
+subm_muts <- filter(genotyping_tables.tib, `Initial submission or revision`== "Submission") %>% .$Mutation %>% unique
+as_tibble(seu@meta.data) %>% select(all_of(subm_muts)) %>%
+  apply(., 1, function(x) sum(grepl("wildtype|mutant", x)) > 0) %>% sum
+# Number of genotyped pDCs at initial submission vs. total
+seu$orig.ident2 <- ifelse(grepl("BM", seu$orig.ident), yes = cutf(seu$replicate, d = "\\."), no = seu$orig.ident)
+seu_subset <- subset(seu, subset = orig.ident2 %in% c("BM2", "BM3", "BM6", "Pt9Dx", "Pt10Dx", "Pt10Rel"))
+as_tibble(seu_subset@meta.data) %>% filter(CellType == "pDC") %>% select(all_of(subm_muts)) %>%
+  apply(., 1, function(x) sum(grepl("wildtype|mutant", x)) > 0) %>% sum
+as_tibble(seu@meta.data) %>% filter(CellType == "pDC") %>% select(all_of(unique(genotyping_tables.tib$Mutation))) %>%
+  apply(., 1, function(x) sum(grepl("wildtype|mutant", x)) > 0) %>% sum
+
 # "Our mean genotyping efficiency by XV-seq was 10.2% (range 0.1-99.0%)"
 mean( na.omit(genotyping_tables.tib$`Genotyping efficiency (%)` ))
 #median( na.omit(genotyping_tables.tib$`Genotyping efficiency (%)` ))
 min( na.omit(genotyping_tables.tib$`Genotyping efficiency (%)` ))
 max( na.omit(genotyping_tables.tib$`Genotyping efficiency (%)` ))
-
-
-
-
-
-
-
-
-
-
 

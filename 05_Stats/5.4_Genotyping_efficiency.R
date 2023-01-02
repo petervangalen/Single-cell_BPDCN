@@ -183,7 +183,7 @@ print( plot_grid(p1, p2, p3, p4) )
 dev.off()
 
 
-# Expression vs. genotyping efficiency; TET2 for rebuttal letter ----------------------------------
+# Expression vs. genotyping efficiency; TET2 for letter to reviewers ------------------------------
 
 # Prepare metadata
 seu$TET2_expr <- GetAssayData(seu)["TET2",]
@@ -234,6 +234,34 @@ unlist_my_ls %>%
         axis.text = element_text(color = "black"),
         axis.ticks = element_line(color = "black"))
 dev.off()
+
+
+# Genotyping efficiency without / with enrichment -------------------------------------------------
+
+# Volker made the plot for EDF6c; I'm just recreating a simplified version here
+genotyping_tables.tib %>%
+  ggplot(aes(x = `Number of genotyped cells without enrichment`, y = `Number of genotyped cells with enrichment`)) +
+  geom_point() +
+  scale_x_continuous(trans='log10') +
+  scale_y_continuous(trans='log10') +
+  coord_cartesian(xlim = c(1, 10000), ylim = c(1, 10000)) +
+  theme_bw() +
+  theme(aspect.ratio = 1,
+        panel.grid = element_blank())
+
+# Calculate correlation, fold change
+cor_tib <- genotyping_tables.tib %>% select(Mutation,
+  `Number of genotyped cells without enrichment`, `Number of genotyped cells with enrichment`) %>%
+  na.omit
+colnames(cor_tib) <- c("Mutation", "without", "with")
+# Exclude MALAT1 in Pt12Dx because we got few reads, and the complexity is so high that most transcripts were only read once or twice (our threshold is three)
+cor_tib <- cor_tib[-34,]
+cor(cor_tib$without, cor_tib$with)
+median( (cor_tib$with / cor_tib$without)[is.finite(cor_tib$with / cor_tib$without)] )
+
+
+
+
 
 
 
