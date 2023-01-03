@@ -2,6 +2,7 @@
 # Classify malignant BPDCN cells
 
 library(tidyverse)
+library(janitor)
 library(Seurat)
 library(readxl)
 library(ggforce)
@@ -78,12 +79,38 @@ seu@meta.data %>% mutate(my_order = sample(ncol(seu))) %>% arrange(my_order) %>%
 dev.off()
 
 
+# Add extra MALAT1 genoytping information ----------------------------------------------------
+# See also 11.4_pDC_Heatmaps.R
+
+# I'm updating MALAT1 genotyping information with cells from transcripts that were supported by only 1 read. This is because
+# of the outsized importance of the MALAT1 mutation, and the low sequencing depth we achieved. 
+malat1_ReadThreshold1 <- read_tsv("../04_XV-seq/Pt12Dx/MALAT1.5155/Patient12_MALAT1.5155_summTable_ReadThreshold1.txt")
+wt_calls <- colnames(subset(pdcs, orig.ident == "Pt12Dx"))[cutf(colnames(subset(pdcs, orig.ident == "Pt12Dx")),
+                                                                d = "-") %in% filter(malat1_ReadThreshold1, mutUMIs == 0)$BC]
+mut_calls <- colnames(subset(pdcs, orig.ident == "Pt12Dx"))[cutf(colnames(subset(pdcs, orig.ident == "Pt12Dx")),
+                                                                 d = "-") %in% filter(malat1_ReadThreshold1, mutUMIs > 0)$BC]
+pdcs$progression <- ifelse(colnames(pdcs) %in% wt_calls, yes = "wildtype", no = pdcs$progression)
+pdcs$progression <- ifelse(colnames(pdcs) %in% mut_calls, yes = "mutant", no = pdcs$progression)
+
+# Calculate P-value (tidy to base R)
+cont_tib <- as_tibble(pdcs@meta.data) %>% filter(bm_involvement == "No") %>%
+  mutate(progression = gsub("no call|wildtype", "not.mutant", progression)) %>%
+  group_by(bpdcn_sign_score > 0.5, progression) %>% count %>% ungroup() %>% pivot_wider(names_from = "progression", values_from = "n")
+cont_df <- data.frame(cont_tib[,2:3], row.names = c("low_score", "high_score"))
+stats::chisq.test(cont_df)
+# Calculate P-value (tidy)
+as_tibble(pdcs@meta.data) %>% filter(bm_involvement == "No") %>%
+  mutate(progression = gsub("no call|wildtype", "not.mutant", progression), score = ifelse(bpdcn_sign_score > 0.5, yes = "high", no = "low")) %>%
+  tabyl(progression, score) %>%
+  chisq.test()
+
+
 # Relate BPDCN Signature Score to progression mutations in samples without involvement ------------
 
-# This justifies why pDCs from patients without marrow involvement with a BPDCN Signature
+# The following plots justify why pDCs from patients without marrow involvement with a BPDCN Signature
 # Score of >0.5 should be classified as malignant
 
-as_tibble(pdcs@meta.data) %>% filter(bm_involvement != "Yes") %>% .$orig.ident %>% table
+as_tibble(pdcs@meta.data) %>% tabyl(orig.ident, bm_involvement)
 
 pdf("11.3.3_Non-involved_pDCs.pdf", width = 5, height = 5)
 
@@ -196,6 +223,23 @@ as_tibble(seu@meta.data) %>%
         axis.ticks = element_line(color = "black"),
         plot.title = element_text(hjust = 0.5))
 
+# Check by coloring cells according to the presence of progression mutations
+p_mut <- filter(genotyping_tables.tib, `Founder or progression mutation` == "Progression") %>% .$Mutation %>% unique
+metadata_tib$progression <- ifelse(apply(metadata_tib[,p_mut], 1, function(x) sum(grepl("wildtype", x) > 0)), yes = "wildtype", no = "no call")
+metadata_tib$progression <- ifelse(apply(metadata_tib[,p_mut], 1, function(x) sum(grepl("mutant", x) > 0)), yes = "mutant", no = metadata_tib$progression)
+
+metadata_tib %>% filter(progression %in% c("wildtype", "mutant")) %>%
+  ggplot(aes(x = CellType, y = bpdcn_sign_score, color = progression)) +
+  geom_sina(aes(group = CellType), size = 0.5) +
+  scale_color_manual(values = mut_colors[-3]) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey") +
+  ggtitle(paste("Classification of all", ncol(seu), "cells")) +
+  theme_bw() +
+  theme(aspect.ratio = 0.5, panel.grid = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.x = element_blank(), axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"),
+        plot.title = element_text(hjust = 0.5))
+
 dev.off()
 
 
@@ -224,7 +268,7 @@ metadata2_tib %>% filter(orig.ident != "BM") %>%
   theme_bw() +
   theme(aspect.ratio = 1, panel.grid = element_blank(),
         axis.ticks = element_line(color = "black"), axis.text = element_text(color="black"))
-# It looks like a few healthy pDCs from patients with bone marrow involvement are erroneously classified as malignant. This is a limitation of the study that does not affect subsequent analyses or conclusions.
+# It looks like a few healthy pDCs from patients with bone marrow involvement are erroneously classified as malignant. This is a limitation of the study that does not affect overall conclusions.
 
 write_tsv(metadata2_tib, file = "11.3_MalignantCalls_Final.txt")
 

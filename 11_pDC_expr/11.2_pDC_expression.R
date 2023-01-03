@@ -60,7 +60,7 @@ write_tsv(markerGenes_tib, file = "11.2_Malignant-vs-Healthy_pDC_DEG.txt")
 bpdcn_sign <- markerGenes_tib %>% filter(p_val_adj < 1E-30, avg_log2FC > 1) %>% .$gene
 highlight_genes <- c("IGLL1", "HES6", "SERPINB2", "ARPP21", "PDLIM1", "TCL1A", "SCN3A", "LAMP5",
                      "FCER1A", "MYBPH", "CLEC11A", "SOX4", "GSTP1", "BCL2", "S100A4")
-highlight_genes_down <- c("GZMB", "LILRA4", "SERPINF1", "PSAP", "APP", "IRF7", "TGFBI", "RUNX1")
+highlight_genes_down <- c("GZMB", "LILRA4", "SERPINF1", "PSAP", "APP", "IRF7", "TGFBI", "RUNX1", "CXCR3")
 
 # Volcano plot
 pdf("11.2.1_Volcano.pdf")
@@ -80,17 +80,19 @@ dev.off()
 
 # How does this compare to Chloe Villani's signature?
 pdcs <- AddModuleScore(pdcs, features = list(bpdcn_sign), name = "bpdcn_sign_score")
+villani <- as.vector(na.omit(read_excel("Signatures.xlsx")[-1,1,drop=T]))
+pdcs <- AddModuleScore(pdcs, features = list(villani), name = "villani_score")
 colnames(pdcs@meta.data) <- gsub("score1$", "score", colnames(pdcs@meta.data))
 
 pdf("11.2.2_Signature_correlation.pdf", width = 5, height = 5)
 print(
 pdcs@meta.data %>% arrange(fct_rev(bm_involvement)) %>%
-  ggplot(aes(x = VILLANI_BPDCN_UP_Score, y = bpdcn_sign_score, color = bm_involvement)) +
+  ggplot(aes(x = villani_score, y = bpdcn_sign_score, color = bm_involvement)) +
   geom_point(size = 0.5) +
   scale_color_manual(values = group_colors) +
   theme_bw() +
   annotate("text", x = -0.5, y = 1, color = "black",
-           label = paste0("r = ", round(cor(pdcs$VILLANI_BPDCN_UP_Score, pdcs$bpdcn_sign_score), 2))) +
+           label = paste0("r = ", round(cor(pdcs$villani_score, pdcs$bpdcn_sign_score), 2))) +
   theme(aspect.ratio = 1,
         panel.grid = element_blank(),
         axis.text = element_text(color = "black"))
@@ -99,8 +101,6 @@ dev.off()
 
 # Save
 write.table(bpdcn_sign, file = "bpdcn_sign.txt", quote = F, sep = "\t", row.names = F, col.names = F)
-
-
 
 
 
@@ -131,14 +131,15 @@ pdf("11.2.3_Volcano_alternative.pdf")
 diffgenes.tib %>%
   ggplot(aes(x = logFC, y = -log10(pval), color = gene %in% bpdcn_sign)) +
   geom_point() +
-  geom_text_repel(data = filter(diffgenes.tib, gene %in% c(bpdcn_sign, tail(diffgenes.tib, 20)$gene)),
+  geom_text_repel(data = filter(diffgenes.tib, gene %in% c(head(diffgenes.tib, 10)$gene, tail(diffgenes.tib, 10)$gene)),
                   aes(x = logFC, y = -log10(pval), label = gene),
                   color = "#006400", size = 3, max.overlaps = 30) +
   scale_color_manual(values = c("#708090", "#9acd32")) +
   coord_cartesian(xlim = c(-max(abs(diffgenes.tib$logFC)), max(abs(diffgenes.tib$logFC)))) +
   theme_bw() +
-  theme(aspect.ratio = 1, axis.line = element_line(color = "black"), axis.ticks = element_line(color = "black"),
-        axis.text = element_text(color = "black"), panel.grid = element_blank())
+  theme(aspect.ratio = 1, axis.ticks = element_line(color = "black"),
+        axis.text = element_text(color = "black"), axis.line = element_blank(),
+        panel.grid = element_blank())
 dev.off()
 
 # Save

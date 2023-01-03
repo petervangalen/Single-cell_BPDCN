@@ -1,10 +1,9 @@
 # Peter van Galen, 220914
-# Generate UMAPs for MTAP in Patient 10 and ETV6 in Patient 14
+# Generate UMAPs for MALAT1 in Patient 12 and ETV6 in Patient 14
 
 library(tidyverse)
 library(Seurat)
 library(readxl)
-#library(data.table)
 library(ggforce)
 library(cowplot)
 library(viridis)
@@ -40,7 +39,7 @@ names(mut_colors) <- popcol.tib$pop[44:46]
   pt <- "Pt12"
   mut <- "MALAT1.chr11:65270399:G/A"
 
-  # This one almost made it into the paper
+  # This one made it into the paper supplement
   seu <- readRDS("../04_XV-seq/Pt14Dx_Seurat_Final.rds")
   pt <- "Pt14Dx"
   mut <- "ETV6.R369W"

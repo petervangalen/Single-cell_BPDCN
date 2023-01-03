@@ -15,7 +15,7 @@ cutf <- function(x, f=1, d="/") sapply(strsplit(x, d), function(i) paste(i[f], c
 
 # Load BPDCN Seurat objects
 bm <- readRDS("../02_Annotate/BM_Seurat_CellTypes.rds")
-seurat_files <- list.files("../03_RandomForest", pattern = "*.rds", full.names = T)
+seurat_files <- list.files("../03_RandomForest", pattern = "Pt.*.rds", full.names = T)
 seu_predict.ls <- lapply(seurat_files, function(x) readRDS(x))
 names(seu_predict.ls) <- gsub("_Seurat_Predict.rds", "", cutf(seurat_files, "/", f = 3))
 

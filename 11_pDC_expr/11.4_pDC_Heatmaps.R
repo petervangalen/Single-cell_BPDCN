@@ -140,6 +140,16 @@ z.lim <- c(-2, 4)
 expr_mat[expr_mat < z.lim[1]] <- z.lim[1]
 expr_mat[expr_mat > z.lim[2]] <- z.lim[2]
 
+  # Add extra MALAT1 genoytping information -----------------------------------
+  # Because of the outsized importance of the MALAT1 mutation, and the low sequencing depth we achieved,
+  # I am including mut/wt transcript calls were supported by 1 read (instead of the regular 3 read threshold).
+  malat1_ReadThreshold1 <- read_tsv("../04_XV-seq/Pt12Dx/MALAT1.5155/Patient12_MALAT1.5155_summTable_ReadThreshold1.txt")
+  pdcs_skin_subset@meta.data$`MALAT1.chr11:65270399:G/A` <- case_when(
+    cutf(colnames(pdcs_skin_subset), d = "-") %in% filter(malat1_ReadThreshold1, mutUMIs == 0)$BC ~ "wildtype",
+    cutf(colnames(pdcs_skin_subset), d = "-") %in% filter(malat1_ReadThreshold1, mutUMIs > 0)$BC ~ "mutant",
+    .default = pdcs_skin_subset$`MALAT1.chr11:65270399:G/A`)
+  # ---------------------------------------------------------------------------
+
 # Define annotation objects
 hm_anno_df <- pdcs_skin_subset@meta.data[,c("orig.ident", "bpdcn_sign_score", "is_malignant", show_f_mut, show_p_mut)]
 top_anno.ha <- HeatmapAnnotation(Donor = as.character(hm_anno_df$orig.ident),
