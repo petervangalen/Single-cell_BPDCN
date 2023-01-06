@@ -2,6 +2,7 @@
 # Visualize the occurrence of progression mutations in pDCs from Patient 10 vs. BDPCN signature score and pDC prediction score
 
 library(tidyverse)
+library(janitor)
 library(Seurat)
 library(readxl)
 library(ggforce)
@@ -53,7 +54,7 @@ Pt10_P_mut <- filter(genotyping_tables.tib, `Founder or progression mutation` ==
 # Extract metadata
 pt10dx_metadata_tib <- as_tibble(seu@meta.data, rownames = "cell") %>%
   filter(orig.ident == "Pt10Dx") %>%
-  dplyr::select(CellType, bpdcn_sign_score, RF_pDC_score, all_of(Pt10_muts))
+  dplyr::select(CellType, bpdcn_sign_score, RF_pDC_score, is_malignant, all_of(Pt10_muts))
 
 # Add summary columns for founder & progression mutations
 pt10dx_metadata_tib <- pt10dx_metadata_tib %>% mutate(any_mut = ifelse(apply(pt10dx_metadata_tib[,Pt10_muts], 1, function(x)
@@ -68,6 +69,9 @@ pt10dx_metadata_tib <- pt10dx_metadata_tib %>% mutate(Progression = ifelse(apply
   sum(grepl("wildtype", x) > 0)), yes = "wildtype", no = "no call"))
 pt10dx_metadata_tib <- pt10dx_metadata_tib %>% mutate(Progression = ifelse(apply(pt10dx_metadata_tib[,Pt10_P_mut], 1, function(x)
   sum(grepl("mutant", x) > 0)), yes = "mutant", no = .$Progression))
+
+# Look at summary table
+pt10dx_metadata_tib %>% tabyl(Progression, is_malignant) %>% adorn_totals("row")
 
 
 # Violin plots of pDCs  with BPDCN Signature Scores for all mutations -----------------------------
