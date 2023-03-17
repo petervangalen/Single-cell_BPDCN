@@ -40,7 +40,9 @@ GetAssayData(seu, slot = "data")["MALAT1",]
 sum(grepl("MALAT1", rownames(seu)))
 
 # Evidently this script is unfinished. To be continued.
-
+subset(seu, orig.ident == "BM")
+FeaturePlot(seu_ls[[1]], features = c("CD80", "CD86")) + theme(aspect.ratio = 1)
+FeaturePlot(seu_ls[[1]], features = c("SSBP1")) + theme(aspect.ratio = 1)
 
 
 

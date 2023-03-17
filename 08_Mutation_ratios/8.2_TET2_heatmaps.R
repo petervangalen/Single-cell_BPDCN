@@ -76,7 +76,7 @@ lapply(contingency_tables, chisq.test)
 chisq.test(contingency_tables$Pt1Rem)
 chisq.test(contingency_tables$Pt5Dx)
 chisq.test(contingency_tables$Pt9Dx)
-chisq.test(contingency_tables$Pt10Dx)
+chisq.test(contingency_tables$Pt10Dx); print(chisq.test(contingency_tables$Pt10Dx))$p.value
 chisq.test(contingency_tables$Pt12Dx)
 
 
