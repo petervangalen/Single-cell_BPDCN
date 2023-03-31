@@ -144,6 +144,13 @@ as_tibble(pdcs@meta.data) %>% filter(bm_involvement != "Yes") %>%
 
 dev.off()
 
+# Main text: "While the clinical significance of this finding requires further investigation, XV-seq revealed progression mutations in 19/23 (82.3%) of these cells but only 1/495 other pDCs, verifying their identity as malignant BPDCN cells (P<2.2E-16, Extended Data Fig. 8c-e)."
+as_tibble(pdcs@meta.data) %>% filter(bm_involvement == "No") %>% mutate(bpdcn_exceed = bpdcn_sign_score >= 0.5) %>%
+  tabyl(bpdcn_exceed, progression) %>% adorn_totals(where = "col")
+contingency_table <- data.frame(mutant = c(1, 19), not_mutant = c(494, 4), row.names = c("low_score", "high_score"))
+chisq.test(contingency_table)
+print(chisq.test(contingency_table))$p.value
+
 
 # Canonical cell type markers in non-pDCs with high BPDCN Signature Score  ------------------------
 
@@ -268,7 +275,7 @@ metadata2_tib %>% filter(orig.ident != "BM") %>%
   theme_bw() +
   theme(aspect.ratio = 1, panel.grid = element_blank(),
         axis.ticks = element_line(color = "black"), axis.text = element_text(color="black"))
-# It looks like a few healthy pDCs from patients with bone marrow involvement are erroneously classified as malignant. This is a limitation of the study that does not affect overall conclusions.
+# It looks like a few healthy/premalignant pDCs from patients with bone marrow involvement are erroneously classified as malignant. This is a limitation of the study that does not affect overall conclusions.
 
 write_tsv(metadata2_tib, file = "11.3_MalignantCalls_Final.txt")
 
