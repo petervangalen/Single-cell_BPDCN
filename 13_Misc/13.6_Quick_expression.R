@@ -56,7 +56,7 @@ seu$orig.ident <- factor(seu$orig.ident, levels = c("BM", "Pt1Dx", "Pt1Rem", "Pt
                                                     "Pt12Dx", "Pt12Rel", "Pt14Dx", "Pt15Dx", "Pt16Dx"))
 seu$CellType <- factor(seu$CellType, levels = names(cell_colors))
 
-# UMAP of cell  types
+# UMAP of normal cell  types
 p1 <- as_tibble(seu@meta.data) %>% filter(orig.ident == "BM") %>%
   ggplot(aes(x = UMAP_1, y = UMAP_2, color = CellType)) +
   geom_point_rast(size = 0.1) +
@@ -66,7 +66,7 @@ p1 <- as_tibble(seu@meta.data) %>% filter(orig.ident == "BM") %>%
   theme(aspect.ratio = 1,
         panel.grid = element_blank(),
         axis.text = element_text(color = "black"))
-
+p1
 
 # Plot expression in healthy donors ---------------------------------------------------------------
 
@@ -80,7 +80,9 @@ metadata_healthy_tib <- as_tibble(seu_healthy@meta.data, rownames = "cell")
 gene <- "GAPDH"
 gene <- "DNMT3A"
 gene <- "HOXA9"
-metadata_healthy_tib[,"expression"] <- GetAssayData(seu_healthy, slot = "data")[gene,]
+gene <- "PIK3R5"
+gene <- "SPI1"
+metadata_healthy_tib[,"expression"] <- LayerData(seu_healthy, layer = "data")[gene,]
 
 # Bar plot of mean expression split by cell type
 p2 <- metadata_healthy_tib %>% group_by(CellType) %>%
@@ -122,33 +124,81 @@ p4 <- metadata_healthy_tib %>% filter(orig.ident == "BM") %>%
         panel.grid = element_blank(),
         axis.text = element_text(color = "black"))
 
-pdf(paste0(gene, "_expr.pdf"), width = 16, height = 8)
+pdf(paste0(gene, "_expr_healthy.pdf"), width = 16, height = 8)
 plot_grid(p2, p3, p1, p4, ncol = 2)
 dev.off()
-
-
-# NOTE: THE SCRIPTS BELOW ARE UNDERDEVELOPED
 
 
 # Plot gene expression in healthy donors compared to BPDCN patients -------------------------------
 
 # Make metadata tibble
-metadata_tib <- as_tibble(seu@meta.data, rownames = "cell")
+metadata_tib <- as_tibble(seu@meta.data, rownames = "cell") %>%
+  mutate(is_malignant = factor(is_malignant, levels = c("Healthy", "Premalignant", "Malignant", "Other")))
 
 # Add expression values
+gene <- "BCL2"
 gene <- "CXCR4"
-metadata_tib[,"expression"] <- GetAssayData(seu, slot = "data")[gene,]
+gene <- "PIK3R5"
+gene <- "SPI1"
+metadata_tib[,"expression"] <- LayerData(seu, layer = "data")[gene,]
 
-# Sina plot example: CXCR4 expression in pDCs across samples
-metadata_tib %>% filter(CellType == "pDC") %>%
-  ggplot(aes(x = orig.ident, y = expression, color = CellType)) +
-  geom_violin(scale = "width", fill = NA, color = "black") +
-  geom_sina(aes(group = orig.ident), scale = "width") +
-  scale_color_manual(values = cell_colors) +
-  ggtitle(label = gene) +
+# Gene expression in pDCs according to malignant state
+p5 <- metadata_tib %>% filter(CellType == "pDC") %>%
+  group_by(orig.ident, is_malignant) %>%
+  summarize(n = n(), mean_expr = mean(expression)) %>%
+  ggplot(aes(x = orig.ident, y = mean_expr, fill = is_malignant)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = n), position = position_dodge(width = 1), vjust = -0.25) +
+  scale_fill_manual(values = paste0(malignant_stage, "CC")) +
+  ylab("Mean normalized expression log(TP10K+1)") +
+  ggtitle(paste0(gene, " in pDCs")) + # make sure this is correct
   theme_bw() +
-  theme(panel.grid = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(aspect.ratio = 0.6,
+        panel.grid = element_blank(),
+        axis.text = element_text(color = "black"),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.x = element_blank())
+
+# Sina/violin plot version of this
+p6 <- metadata_tib %>% filter(CellType == "pDC") %>%
+  ggplot(aes(x = orig.ident, y = expression, color = is_malignant)) +
+  geom_violin(scale = "width", fill = NA) +
+  geom_sina(aes(color = is_malignant), scale = "width") +
+  scale_color_manual(values = malignant_stage) +
+  ggtitle(paste0(gene, " in pDCs")) + # make sure this is correct
+  ylab("Normalized expression log(TP10K+1)") +
+  theme_bw() +
+  theme(aspect.ratio = 0.6,
+        panel.grid = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.x = element_blank())
+
+pdf(paste0(gene, "_expr_withBPDCN.pdf"), width = 16, height = 4)
+plot_grid(p5, p6, ncol = 2)
+dev.off()
+
+  
+
+# Correlate
+#gene1 <- "PIK3R5"
+#gene2 <- "SPI1"
+#metadata_tib[,"expression1"] <- LayerData(seu, layer = "data")[gene1,]
+#metadata_tib[,"expression2"] <- LayerData(seu, layer = "data")[gene2,]
+
+#metadata_tib %>%
+#  ggplot(aes(x = expression1, y = expression2, color = CellType)) +
+#  geom_point() +
+#  geom_smooth(method = "lm", aes(color = NULL)) +
+#  scale_color_manual(values = cell_colors) +
+#  xlab(paste(gene1, "expression")) +
+#  ylab(paste(gene2, "expression")) +
+#  theme_bw() +
+#  theme(aspect.ratio = 1,
+#        panel.grid = element_blank())
+
+
+# NOTE: THE SCRIPTS BELOW ARE UNDERDEVELOPED
+
 
 
 # Age correlations --------------------------------------------------------------------------------

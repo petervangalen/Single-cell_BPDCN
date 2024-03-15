@@ -120,8 +120,11 @@ for (n in names(seu.ls)) {
   seu.ls[[n]]$orig.ident <- cutf(as.character(seu.ls[[n]]$orig.ident), d = "-")
 }
 
-# Get expression matrices
+# Get expression matrices (before Seurat v5)
 expr.ls <- lapply(seu.ls, function(x) as.matrix(GetAssayData(x), slot = "data"))
+# For Seurat v5:
+seu.ls.join <- lapply(seu.ls, function(x) JoinLayers(x))
+expr.ls <- lapply(seu.ls.join, function(x) as.matrix(GetAssayData(x), slot = "data"))
 
 # Merge all gene expression data & check if it all makes sense.
 all.mat <- cbind(bm.expr, do.call(cbind, expr.ls))
@@ -139,6 +142,9 @@ rf <- randomForest(x = t(bm.expr[selected.genes,]),  # matrix of predictors
                    sampsize = rep(50, length(levels(bm@active.ident))),
                    ntree = 1000,
                    do.trace = 100)
+
+# Addition for Volker Hovestadt, 240315
+saveRDS(rf, file = "rf_model.rds")
 
 # Plot confusion matrix (based on out-of-bag data), with colors normalized for the total cell number in each population
 Conf.mat <- rf$confusion[, rownames(rf$confusion)]
