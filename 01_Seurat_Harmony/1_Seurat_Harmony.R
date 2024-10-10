@@ -13,6 +13,7 @@ rm(list=ls())
 # Functions
 source("../Single-cell_BPDCN_Functions.R")
 
+# The following links are broken as of 241010; the count data is in "DropboxMGB/Peter van Galen/Projects/Archive/2024_Single-cell_BPDCN/AnalysisPeter"
 # Load Seq-Well BM02-1 data. This already has undergone some standard QC filtering steps.
 load("../../ExprStar/190514.190301.BM02-1.star/190514.190301.BM02-1.filter.RData", verbose = T)
 colnames(CM.df) <- paste0(cutf(colnames(CM.df), d = "_", f = 2), "-", gsub("BM02-", "BM6.", cutf(colnames(CM.df), d = "_", f = 1)))
